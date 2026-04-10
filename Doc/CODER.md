@@ -76,6 +76,7 @@ reason: Deprecated architecture
 ## Git Commit & PR Protocol
 
 - NEVER commit directly to main/master branch
+- ALWAYS create a separate feature branch for each task/feature
 - ALWAYS create a pull request for each commit/set of changes
 - PR title must be descriptive (1-2 sentences)
 - PR body must include:
