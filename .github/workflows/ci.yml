@@ -71,12 +71,8 @@ jobs:
         env:
           FLUTTER_BUILD_APPBundle: false
       
-      - uses: actions/delete-artifact@v4
-        with:
-          name: vaultify-debug.apk
-          continue-on-error: true
-      
       - uses: actions/upload-artifact@v4
         with:
           name: vaultify-debug.apk
           path: build/app/outputs/flutter-apk/app-debug.apk
+          overwrite: true
