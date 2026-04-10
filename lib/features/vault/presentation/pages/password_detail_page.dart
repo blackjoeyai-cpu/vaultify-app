@@ -61,7 +61,7 @@ class _PasswordDetailPageState extends ConsumerState<PasswordDetailPage> {
                 width: 80,
                 height: 80,
                 decoration: BoxDecoration(
-                  color: entry.category.color.withOpacity(0.2),
+                  color: entry.category.color.withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Icon(
@@ -229,11 +229,11 @@ class _PasswordDetailPageState extends ConsumerState<PasswordDetailPage> {
           ),
           TextButton(
             onPressed: () async {
-              Navigator.of(context).pop();
+              final navigator = Navigator.of(context);
+              final router = GoRouter.of(context);
+              navigator.pop();
               await ref.read(vaultProvider.notifier).deletePassword(entry.id);
-              if (mounted) {
-                context.pop();
-              }
+              router.pop();
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('Delete'),

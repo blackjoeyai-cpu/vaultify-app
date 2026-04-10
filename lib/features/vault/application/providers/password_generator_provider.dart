@@ -80,8 +80,9 @@ class PasswordGeneratorNotifier extends StateNotifier<PasswordGeneratorState> {
     if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
     if (RegExp(r'[a-z]').hasMatch(password)) strength++;
     if (RegExp(r'[0-9]').hasMatch(password)) strength++;
-    if (RegExp(r'[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]').hasMatch(password))
+    if (RegExp(r'[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]').hasMatch(password)) {
       strength++;
+    }
     return strength;
   }
 

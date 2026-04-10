@@ -1,5 +1,4 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../domain/repositories/settings_repository.dart';
 import '../../data/repositories/settings_repository_impl.dart';
 import '../../../auth/application/providers/auth_provider.dart';

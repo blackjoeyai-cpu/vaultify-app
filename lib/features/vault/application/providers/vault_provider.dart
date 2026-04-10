@@ -3,7 +3,6 @@ import '../../domain/entities/password_entry.dart';
 import '../../domain/repositories/vault_repository.dart';
 import '../../data/repositories/vault_repository_impl.dart';
 import '../../data/datasources/vault_local_datasource.dart';
-import '../../../auth/application/providers/auth_provider.dart';
 
 final vaultLocalDatasourceProvider = Provider<VaultLocalDatasource>((ref) {
   return VaultLocalDatasource();

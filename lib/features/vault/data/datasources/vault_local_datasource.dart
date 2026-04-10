@@ -66,9 +66,8 @@ class VaultLocalDatasource {
   }
 
   Map<String, dynamic> _parseJson(String json) {
-    return Map<String, dynamic>.from(
-      (json.isEmpty ? {} : _decodeJson(json)) as Map,
-    );
+    if (json.isEmpty) return {};
+    return _decodeJson(json);
   }
 
   String _encodeJson(Map<String, dynamic> map) {
@@ -83,11 +82,11 @@ class VaultLocalDatasource {
       } else if (value is List) {
         buffer.write('[');
         var firstItem = true;
-        value.forEach((item) {
+        for (final item in value) {
           if (!firstItem) buffer.write(',');
           firstItem = false;
           buffer.write(item is String ? '"$item"' : item.toString());
-        });
+        }
         buffer.write(']');
       } else if (value == null) {
         buffer.write('null');
@@ -107,7 +106,9 @@ class VaultLocalDatasource {
     json = json.substring(1, json.length - 1);
     var i = 0;
     while (i < json.length) {
-      while (i < json.length && (json[i] == ' ' || json[i] == ',')) i++;
+      while (i < json.length && (json[i] == ' ' || json[i] == ',')) {
+        i++;
+      }
       if (i >= json.length) break;
 
       if (json[i] != '"') {
@@ -118,10 +119,14 @@ class VaultLocalDatasource {
       var keyEnd = json.indexOf('"', i);
       var key = json.substring(i, keyEnd);
       i = keyEnd + 1;
-      while (i < json.length && json[i] == ' ') i++;
+      while (i < json.length && json[i] == ' ') {
+        i++;
+      }
       if (i >= json.length || json[i] != ':') continue;
       i++;
-      while (i < json.length && json[i] == ' ') i++;
+      while (i < json.length && json[i] == ' ') {
+        i++;
+      }
 
       dynamic value;
       if (json[i] == '"') {
