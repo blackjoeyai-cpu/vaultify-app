@@ -73,6 +73,20 @@ reason: Deprecated architecture
 
 ---
 
+## Git Commit & PR Protocol
+
+- NEVER commit directly to main/master branch
+- ALWAYS create a pull request for each commit/set of changes
+- PR title must be descriptive (1-2 sentences)
+- PR body must include:
+  - Summary of changes
+  - Related issue/ticket (if any)
+  - Testing performed
+- Wait for code review before merging
+- NEVER force push to main/master
+
+---
+
 ## Integration
 
 - Only implements after Planner approval

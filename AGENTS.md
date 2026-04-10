@@ -102,6 +102,22 @@ Presentation (UI) → Application (Use Cases) → Domain (Entities) → Data (Cr
 
 ---
 
+# 🔀 GIT COMMIT & PR PROTOCOL
+
+> See: `Doc/CODER.md`
+
+- **NEVER** commit directly to main/master branch
+- **ALWAYS** create a pull request for each set of changes
+- PR title must be descriptive (1-2 sentences)
+- PR body must include:
+  - Summary of changes
+  - Related issue/ticket (if any)
+  - Testing performed
+- Wait for code review before merging
+- **NEVER** force push to main/master
+
+---
+
 # 🔐 SECURITY GOVERNANCE
 
 > See: `Doc/SECURITY.md`, `Doc/SECURITY_GOVERNANCE.md`
