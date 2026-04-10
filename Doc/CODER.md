@@ -75,6 +75,7 @@ reason: Deprecated architecture
 
 ## Git Commit & PR Protocol
 
+- **ALWAYS** work from `dev` branch for development (create feature branches from dev)
 - NEVER commit directly to main/master branch
 - ALWAYS create a separate feature branch for each task/feature
 - ALWAYS create a pull request for each commit/set of changes
