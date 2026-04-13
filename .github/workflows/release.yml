@@ -89,15 +89,6 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Generate tag
-        id: tag
-        run: |
-          TAG="v$(date +'%Y%m%d.%H%M%S')"
-          git tag $TAG
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
       - uses: actions/setup-node@v4
         with:
           node-version: 'lts/*'
@@ -109,9 +100,8 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           files: artifacts/**
-          tag_name: ${{ steps.tag.outputs.tag }}
-          name: ${{ steps.tag.outputs.tag }}
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
           body: ${{ github.event.head_commit.message }}
-          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
