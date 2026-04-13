@@ -12,12 +12,14 @@ class SettingsState {
   final bool autoLockEnabled;
   final int autoLockDuration;
   final bool biometricEnabled;
+  final bool clipboardAutoClearEnabled;
   final bool isLoading;
 
   const SettingsState({
     this.autoLockEnabled = true,
     this.autoLockDuration = 5,
     this.biometricEnabled = false,
+    this.clipboardAutoClearEnabled = true,
     this.isLoading = false,
   });
 
@@ -25,12 +27,15 @@ class SettingsState {
     bool? autoLockEnabled,
     int? autoLockDuration,
     bool? biometricEnabled,
+    bool? clipboardAutoClearEnabled,
     bool? isLoading,
   }) {
     return SettingsState(
       autoLockEnabled: autoLockEnabled ?? this.autoLockEnabled,
       autoLockDuration: autoLockDuration ?? this.autoLockDuration,
       biometricEnabled: biometricEnabled ?? this.biometricEnabled,
+      clipboardAutoClearEnabled:
+          clipboardAutoClearEnabled ?? this.clipboardAutoClearEnabled,
       isLoading: isLoading ?? this.isLoading,
     );
   }
@@ -47,10 +52,13 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
       final autoLockEnabled = await _repository.isAutoLockEnabled();
       final autoLockDuration = await _repository.getAutoLockDuration();
       final biometricEnabled = await _repository.isBiometricEnabled();
+      final clipboardAutoClearEnabled = await _repository
+          .isClipboardAutoClearEnabled();
       state = state.copyWith(
         autoLockEnabled: autoLockEnabled,
         autoLockDuration: autoLockDuration,
         biometricEnabled: biometricEnabled,
+        clipboardAutoClearEnabled: clipboardAutoClearEnabled,
         isLoading: false,
       );
     } catch (e) {
@@ -71,6 +79,11 @@ class SettingsNotifier extends StateNotifier<SettingsState> {
   Future<void> setBiometricEnabled(bool enabled) async {
     await _repository.setBiometricEnabled(enabled);
     state = state.copyWith(biometricEnabled: enabled);
+  }
+
+  Future<void> setClipboardAutoClearEnabled(bool enabled) async {
+    await _repository.setClipboardAutoClearEnabled(enabled);
+    state = state.copyWith(clipboardAutoClearEnabled: enabled);
   }
 }
 

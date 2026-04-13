@@ -5,4 +5,6 @@ abstract class SettingsRepository {
   Future<void> setAutoLockDuration(int minutes);
   Future<bool> isBiometricEnabled();
   Future<void> setBiometricEnabled(bool enabled);
+  Future<bool> isClipboardAutoClearEnabled();
+  Future<void> setClipboardAutoClearEnabled(bool enabled);
 }

@@ -2,11 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/password_entry.dart';
 import '../../domain/repositories/vault_repository.dart';
 import '../../data/repositories/vault_repository_impl.dart';
-import '../../data/datasources/vault_local_datasource.dart';
-
-final vaultLocalDatasourceProvider = Provider<VaultLocalDatasource>((ref) {
-  return VaultLocalDatasource();
-});
+import '../../../../core/di/vault_datasource_provider.dart';
 
 final vaultRepositoryProvider = Provider<VaultRepository>((ref) {
   final localDatasource = ref.watch(vaultLocalDatasourceProvider);
@@ -63,7 +59,15 @@ class VaultState {
       }).toList();
     }
 
-    return filtered;
+    final sorted = List<PasswordEntry>.from(filtered);
+    sorted.sort((a, b) {
+      if (a.isFavorite != b.isFavorite) {
+        return a.isFavorite ? -1 : 1;
+      }
+      return b.updatedAt.compareTo(a.updatedAt);
+    });
+
+    return sorted;
   }
 }
 
@@ -126,6 +130,17 @@ class VaultNotifier extends StateNotifier<VaultState> {
 
   void clearFilters() {
     state = state.copyWith(clearCategory: true, searchQuery: '');
+  }
+
+  Future<void> toggleFavorite(String id) async {
+    final entry = state.passwords.where((p) => p.id == id).firstOrNull;
+    if (entry == null) return;
+
+    final updated = entry.copyWith(
+      isFavorite: !entry.isFavorite,
+      updatedAt: DateTime.now(),
+    );
+    await updatePassword(updated);
   }
 }
 
