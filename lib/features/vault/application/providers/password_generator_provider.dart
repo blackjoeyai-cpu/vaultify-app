@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/password_strength.dart';
 
 class PasswordGeneratorState {
   final String password;
@@ -68,22 +69,9 @@ class PasswordGeneratorNotifier extends StateNotifier<PasswordGeneratorState> {
       (_) => chars[random.nextInt(chars.length)],
     ).join();
 
-    final strength = _calculateStrength(password);
+    final strength = PasswordStrengthUtil.calculate(password);
 
     state = state.copyWith(password: password, strength: strength);
-  }
-
-  int _calculateStrength(String password) {
-    int strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
-    if (RegExp(r'[a-z]').hasMatch(password)) strength++;
-    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
-    if (RegExp(r'[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]').hasMatch(password)) {
-      strength++;
-    }
-    return strength;
   }
 
   void setLength(int length) {

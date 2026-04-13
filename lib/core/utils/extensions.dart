@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'password_strength.dart';
 
 extension StringExtensions on String {
   bool get isValidEmail {
@@ -16,17 +17,7 @@ extension StringExtensions on String {
     return hasUpper && hasLower && hasNumber;
   }
 
-  int get passwordStrength {
-    if (isEmpty) return 0;
-    int strength = 0;
-    if (length >= 8) strength++;
-    if (length >= 12) strength++;
-    if (RegExp(r'[A-Z]').hasMatch(this)) strength++;
-    if (RegExp(r'[a-z]').hasMatch(this)) strength++;
-    if (RegExp(r'[0-9]').hasMatch(this)) strength++;
-    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(this)) strength++;
-    return strength;
-  }
+  int get passwordStrength => PasswordStrengthUtil.calculate(this);
 }
 
 extension ContextExtensions on BuildContext {
