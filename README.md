@@ -31,6 +31,7 @@ A secure, offline-first Flutter password vault built with Clean Architecture.
 - [x] Add password page
 - [x] Password detail page
 - [x] Delete password flow
+- [x] Password generator UI integration
 
 #### Settings
 - [x] Settings page UI
@@ -55,7 +56,6 @@ A secure, offline-first Flutter password vault built with Clean Architecture.
 
 #### Password Vault
 - [ ] Edit password flow
-- [ ] Password generator UI integration
 - [ ] Favorite toggle
 
 #### Settings

@@ -5,10 +5,16 @@ import '../../../../core/theme/app_theme.dart';
 import '../../application/providers/vault_provider.dart';
 import '../../domain/entities/password_entry.dart';
 import '../widgets/password_strength_indicator.dart';
+import '../widgets/password_generator_sheet.dart';
 import '../../../../core/utils/extensions.dart';
 
 class AddPasswordPage extends ConsumerStatefulWidget {
-  const AddPasswordPage({super.key});
+  final PasswordEntry? existingEntry;
+  final String? editId;
+
+  const AddPasswordPage({super.key, this.existingEntry, this.editId});
+
+  bool get isEditMode => existingEntry != null || editId != null;
 
   @override
   ConsumerState<AddPasswordPage> createState() => _AddPasswordPageState();
@@ -29,6 +35,38 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
   void initState() {
     super.initState();
     _passwordController.addListener(_updatePasswordStrength);
+    if (widget.isEditMode) {
+      _populateFields();
+    }
+  }
+
+  void _populateFields() {
+    final entry = widget.existingEntry;
+    if (entry == null && widget.editId != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        final vaultState = ref.read(vaultProvider);
+        final found = vaultState.passwords
+            .where((p) => p.id == widget.editId)
+            .firstOrNull;
+        if (found != null) {
+          _titleController.text = found.title;
+          _usernameController.text = found.username;
+          _passwordController.text = found.password;
+          _urlController.text = found.url ?? '';
+          _notesController.text = found.notes ?? '';
+          setState(() {
+            _selectedCategory = found.category;
+          });
+        }
+      });
+    } else if (entry != null) {
+      _titleController.text = entry.title;
+      _usernameController.text = entry.username;
+      _passwordController.text = entry.password;
+      _urlController.text = entry.url ?? '';
+      _notesController.text = entry.notes ?? '';
+      _selectedCategory = entry.category;
+    }
   }
 
   void _updatePasswordStrength() {
@@ -56,19 +94,54 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
     });
 
     final now = DateTime.now();
-    final entry = PasswordEntry(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _titleController.text,
-      username: _usernameController.text,
-      password: _passwordController.text,
-      url: _urlController.text.isEmpty ? null : _urlController.text,
-      notes: _notesController.text.isEmpty ? null : _notesController.text,
-      category: _selectedCategory,
-      createdAt: now,
-      updatedAt: now,
-    );
 
-    await ref.read(vaultProvider.notifier).addPassword(entry);
+    if (widget.isEditMode) {
+      PasswordEntry? original;
+      if (widget.existingEntry != null) {
+        original = widget.existingEntry;
+      } else if (widget.editId != null) {
+        final vaultState = ref.read(vaultProvider);
+        original = vaultState.passwords
+            .where((p) => p.id == widget.editId)
+            .firstOrNull;
+      }
+
+      if (original == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Password not found')),
+          );
+        }
+        return;
+      }
+
+      final updated = original.copyWith(
+        title: _titleController.text,
+        username: _usernameController.text,
+        password: _passwordController.text,
+        url: _urlController.text.isEmpty ? null : _urlController.text,
+        notes: _notesController.text.isEmpty ? null : _notesController.text,
+        category: _selectedCategory,
+        updatedAt: now,
+      );
+      await ref.read(vaultProvider.notifier).updatePassword(updated);
+    } else {
+      final entry = PasswordEntry(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: _titleController.text,
+        username: _usernameController.text,
+        password: _passwordController.text,
+        url: _urlController.text.isEmpty ? null : _urlController.text,
+        notes: _notesController.text.isEmpty ? null : _notesController.text,
+        category: _selectedCategory,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await ref.read(vaultProvider.notifier).addPassword(entry);
+    }
 
     setState(() {
       _isLoading = false;
@@ -79,11 +152,28 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
     }
   }
 
+  void _showGenerator() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ProviderScope(
+        child: PasswordGeneratorSheet(
+          onPasswordSelected: (password) {
+            _passwordController.text = password;
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(title: const Text('Add Password')),
+      appBar: AppBar(
+        title: Text(widget.isEditMode ? 'Edit Password' : 'Add Password'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -117,19 +207,7 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: _passwordController,
-                label: 'Password',
-                hint: 'Enter password',
-                icon: Icons.lock_outline,
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  return null;
-                },
-              ),
+              _buildPasswordField(),
               const SizedBox(height: 8),
               PasswordStrengthIndicator(strength: _passwordStrength),
               const SizedBox(height: 16),
@@ -209,12 +287,48 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
                         height: 24,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Save Password'),
+                    : Text(
+                        widget.isEditMode ? 'Update Password' : 'Save Password',
+                      ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Password',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(color: AppTheme.textSecondary),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _passwordController,
+          obscureText: true,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a password';
+            }
+            return null;
+          },
+          decoration: InputDecoration(
+            hintText: 'Enter password',
+            prefixIcon: const Icon(Icons.lock_outline),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.auto_awesome),
+              onPressed: _showGenerator,
+              tooltip: 'Generate Password',
+            ),
+          ),
+        ),
+      ],
     );
   }
 

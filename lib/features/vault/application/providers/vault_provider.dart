@@ -4,8 +4,14 @@ import '../../domain/repositories/vault_repository.dart';
 import '../../data/repositories/vault_repository_impl.dart';
 import '../../data/datasources/vault_local_datasource.dart';
 
+final _initializedDatasource = VaultLocalDatasource();
+
+Future<void> initializeDatasource() async {
+  await _initializedDatasource.init();
+}
+
 final vaultLocalDatasourceProvider = Provider<VaultLocalDatasource>((ref) {
-  return VaultLocalDatasource();
+  return _initializedDatasource;
 });
 
 final vaultRepositoryProvider = Provider<VaultRepository>((ref) {
@@ -63,7 +69,15 @@ class VaultState {
       }).toList();
     }
 
-    return filtered;
+    final sorted = List<PasswordEntry>.from(filtered);
+    sorted.sort((a, b) {
+      if (a.isFavorite != b.isFavorite) {
+        return a.isFavorite ? -1 : 1;
+      }
+      return b.updatedAt.compareTo(a.updatedAt);
+    });
+
+    return sorted;
   }
 }
 
@@ -126,6 +140,17 @@ class VaultNotifier extends StateNotifier<VaultState> {
 
   void clearFilters() {
     state = state.copyWith(clearCategory: true, searchQuery: '');
+  }
+
+  Future<void> toggleFavorite(String id) async {
+    final entry = state.passwords.where((p) => p.id == id).firstOrNull;
+    if (entry == null) return;
+
+    final updated = entry.copyWith(
+      isFavorite: !entry.isFavorite,
+      updatedAt: DateTime.now(),
+    );
+    await updatePassword(updated);
   }
 }
 

@@ -41,9 +41,15 @@ class _PasswordDetailPageState extends ConsumerState<PasswordDetailPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () {
-              // TODO: Implement edit
-            },
+            onPressed: () => context.push('/vault/edit/${entry.id}'),
+          ),
+          IconButton(
+            icon: Icon(
+              entry.isFavorite ? Icons.star : Icons.star_border,
+              color: entry.isFavorite ? AppTheme.warningColor : null,
+            ),
+            onPressed: () =>
+                ref.read(vaultProvider.notifier).toggleFavorite(entry.id),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),

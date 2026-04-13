@@ -21,6 +21,7 @@ class AppRouter {
   static const String lock = '/lock';
   static const String vault = '/vault';
   static const String addPassword = '/vault/add';
+  static const String editPassword = '/vault/edit/:id';
   static const String settings = '/settings';
 
   static final GoRouter router = GoRouter(
@@ -45,6 +46,13 @@ class AppRouter {
       GoRoute(
         path: addPassword,
         builder: (context, state) => const AddPasswordPage(),
+      ),
+      GoRoute(
+        path: editPassword,
+        builder: (context, state) {
+          final id = state.pathParameters['id']!;
+          return AddPasswordPage(editId: id);
+        },
       ),
       GoRoute(
         path: '/vault/:id',
