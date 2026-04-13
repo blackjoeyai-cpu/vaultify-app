@@ -165,18 +165,20 @@ A feature is ONLY complete if:
 - [x] Add password page
 - [x] Password detail page
 - [x] Delete password flow
-- [ ] Edit password flow
-- [ ] Password generator UI integration
-- [ ] Favorite toggle
+- [x] Password generator UI integration
+- [x] Favorite toggle
 
 ### Settings
 - [x] Settings page UI
 - [x] Auto-lock toggle UI
+- [x] Auto-lock toggle implementation
 - [ ] Auto-lock timer implementation
 - [ ] Biometric authentication
 
 ### Security
 - [x] Encryption service (AES-256-GCM with PBKDF2)
+- [x] Secure clipboard service
+- [x] Session persistence across app restarts
 - [ ] Password encryption in Hive storage
 - [ ] Auto-lock on app background
 
@@ -186,7 +188,7 @@ A feature is ONLY complete if:
 - [x] GoRouter navigation
 - [x] Hive local storage
 - [x] Flutter Secure Storage integration
-- [ ] Memory persistence across app restarts
+- [x] Memory persistence across app restarts
 
 ---
 

@@ -44,6 +44,44 @@ class AuthLocalDatasource {
     );
   }
 
+  Future<void> saveSession(String token, DateTime expiry) async {
+    await _secureStorage.write(key: StorageKeys.sessionToken, value: token);
+    await _secureStorage.write(
+      key: StorageKeys.sessionExpiry,
+      value: expiry.millisecondsSinceEpoch.toString(),
+    );
+  }
+
+  Future<({String token, DateTime expiry})?> getSession() async {
+    final token = await _secureStorage.read(key: StorageKeys.sessionToken);
+    final expiryStr = await _secureStorage.read(key: StorageKeys.sessionExpiry);
+    if (token == null || expiryStr == null) return null;
+    return (
+      token: token,
+      expiry: DateTime.fromMillisecondsSinceEpoch(int.parse(expiryStr)),
+    );
+  }
+
+  Future<void> clearSession() async {
+    await _secureStorage.delete(key: StorageKeys.sessionToken);
+    await _secureStorage.delete(key: StorageKeys.sessionExpiry);
+  }
+
+  Future<void> saveBiometricCredential(String encryptedPassword) async {
+    await _secureStorage.write(
+      key: StorageKeys.biometricCredential,
+      value: encryptedPassword,
+    );
+  }
+
+  Future<String?> getBiometricCredential() async {
+    return await _secureStorage.read(key: StorageKeys.biometricCredential);
+  }
+
+  Future<void> clearBiometricCredential() async {
+    await _secureStorage.delete(key: StorageKeys.biometricCredential);
+  }
+
   Future<void> clearAll() async {
     await _secureStorage.deleteAll();
   }

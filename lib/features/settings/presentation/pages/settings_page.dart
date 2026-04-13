@@ -22,6 +22,98 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  Future<void> _onBiometricToggle(bool value) async {
+    if (value) {
+      final biometricService = ref.read(biometricServiceProvider);
+      final isAvailable = await biometricService.isAvailable();
+
+      if (!isAvailable) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Biometric authentication is not available on this device',
+              ),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
+        final confirmed = await _showBiometricSetupDialog();
+        if (confirmed == true) {
+          ref.read(settingsProvider.notifier).setBiometricEnabled(true);
+        }
+      }
+    } else {
+      ref.read(settingsProvider.notifier).setBiometricEnabled(false);
+      await ref.read(authProvider.notifier).clearBiometricCredential();
+    }
+  }
+
+  Future<bool?> _showBiometricSetupDialog() async {
+    final passwordController = TextEditingController();
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        title: const Text('Setup Biometric'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'Enter your master password to enable biometric unlock.',
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: passwordController,
+              obscureText: true,
+              decoration: const InputDecoration(
+                labelText: 'Master Password',
+                hintText: 'Enter your password',
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              final password = passwordController.text;
+              if (password.isEmpty) return;
+
+              final isValid = await ref
+                  .read(authProvider.notifier)
+                  .login(password, saveSession: false);
+
+              if (isValid) {
+                await ref
+                    .read(authProvider.notifier)
+                    .saveBiometricCredential(password);
+                if (context.mounted) Navigator.of(context).pop(true);
+              } else {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Invalid password'),
+                      backgroundColor: AppTheme.errorColor,
+                    ),
+                  );
+                }
+              }
+            },
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -58,9 +150,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: 'Use fingerprint to unlock',
             trailing: Switch(
               value: settings.biometricEnabled,
-              onChanged: (value) {
-                ref.read(settingsProvider.notifier).setBiometricEnabled(value);
-              },
+              onChanged: _onBiometricToggle,
             ),
           ),
           _buildSettingsTile(

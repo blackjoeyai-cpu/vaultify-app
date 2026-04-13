@@ -123,4 +123,14 @@ class EncryptionService {
   Future<void> clearAllData() async {
     await _secureStorage.deleteAll();
   }
+
+  Future<String> encryptForBiometric(String password) async {
+    final encrypted = await encrypt(password, AppConstants.biometricKey);
+    return base64Encode(encrypted);
+  }
+
+  Future<String> decryptForBiometric(String encryptedPassword) async {
+    final encryptedData = base64Decode(encryptedPassword);
+    return await decrypt(encryptedData, AppConstants.biometricKey);
+  }
 }
