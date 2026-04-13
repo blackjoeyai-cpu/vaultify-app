@@ -59,10 +59,6 @@ class PasswordGeneratorNotifier extends StateNotifier<PasswordGeneratorState> {
     if (state.includeNumbers) chars += numbers;
     if (state.includeSymbols) chars += symbols;
 
-    if (chars.isEmpty) {
-      chars = lowercase + numbers;
-    }
-
     final random = Random.secure();
     final password = List.generate(
       state.length,
@@ -80,23 +76,40 @@ class PasswordGeneratorNotifier extends StateNotifier<PasswordGeneratorState> {
   }
 
   void toggleUppercase() {
+    final enabledCount = _enabledOptionsCount();
+    if (state.includeUppercase && enabledCount <= 1) return;
     state = state.copyWith(includeUppercase: !state.includeUppercase);
     generatePassword();
   }
 
   void toggleLowercase() {
+    final enabledCount = _enabledOptionsCount();
+    if (state.includeLowercase && enabledCount <= 1) return;
     state = state.copyWith(includeLowercase: !state.includeLowercase);
     generatePassword();
   }
 
   void toggleNumbers() {
+    final enabledCount = _enabledOptionsCount();
+    if (state.includeNumbers && enabledCount <= 1) return;
     state = state.copyWith(includeNumbers: !state.includeNumbers);
     generatePassword();
   }
 
   void toggleSymbols() {
+    final enabledCount = _enabledOptionsCount();
+    if (state.includeSymbols && enabledCount <= 1) return;
     state = state.copyWith(includeSymbols: !state.includeSymbols);
     generatePassword();
+  }
+
+  int _enabledOptionsCount() {
+    int count = 0;
+    if (state.includeUppercase) count++;
+    if (state.includeLowercase) count++;
+    if (state.includeNumbers) count++;
+    if (state.includeSymbols) count++;
+    return count;
   }
 }
 

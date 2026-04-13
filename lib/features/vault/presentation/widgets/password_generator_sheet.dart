@@ -107,21 +107,25 @@ class PasswordGeneratorSheet extends ConsumerWidget {
                 label: 'ABC',
                 isSelected: generatorState.includeUppercase,
                 onTap: generator.toggleUppercase,
+                enabled: !_isOnlyOptionEnabled(generatorState),
               ),
               _buildToggleChip(
                 label: 'abc',
                 isSelected: generatorState.includeLowercase,
                 onTap: generator.toggleLowercase,
+                enabled: !_isOnlyOptionEnabled(generatorState),
               ),
               _buildToggleChip(
                 label: '123',
                 isSelected: generatorState.includeNumbers,
                 onTap: generator.toggleNumbers,
+                enabled: !_isOnlyOptionEnabled(generatorState),
               ),
               _buildToggleChip(
                 label: '#\$%',
                 isSelected: generatorState.includeSymbols,
                 onTap: generator.toggleSymbols,
+                enabled: !_isOnlyOptionEnabled(generatorState),
               ),
             ],
           ),
@@ -136,6 +140,15 @@ class PasswordGeneratorSheet extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  bool _isOnlyOptionEnabled(PasswordGeneratorState state) {
+    int count = 0;
+    if (state.includeUppercase) count++;
+    if (state.includeLowercase) count++;
+    if (state.includeNumbers) count++;
+    if (state.includeSymbols) count++;
+    return count <= 1;
   }
 
   Widget _buildStrengthIndicator(int strength) {
@@ -186,19 +199,28 @@ class PasswordGeneratorSheet extends ConsumerWidget {
     required String label,
     required bool isSelected,
     required VoidCallback onTap,
+    bool enabled = true,
   }) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppTheme.primaryColor : AppTheme.backgroundColor,
+          color: !enabled
+              ? AppTheme.textHint.withValues(alpha: 0.3)
+              : isSelected
+              ? AppTheme.primaryColor
+              : AppTheme.backgroundColor,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Text(
           label,
           style: TextStyle(
-            color: isSelected ? Colors.white : AppTheme.textSecondary,
+            color: !enabled
+                ? AppTheme.textHint
+                : isSelected
+                ? Colors.white
+                : AppTheme.textSecondary,
             fontWeight: FontWeight.bold,
           ),
         ),
