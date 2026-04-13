@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 
 import 'app.dart';
-import 'features/vault/application/providers/vault_provider.dart';
+import 'core/di/vault_datasource_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,7 +23,7 @@ void main() async {
 
   await Hive.initFlutter();
 
-  await initializeDatasource();
+  await initializeVaultDatasource();
 
   runApp(const ProviderScope(child: VaultifyApp()));
 }

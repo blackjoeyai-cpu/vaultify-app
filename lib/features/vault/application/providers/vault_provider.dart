@@ -2,17 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/entities/password_entry.dart';
 import '../../domain/repositories/vault_repository.dart';
 import '../../data/repositories/vault_repository_impl.dart';
-import '../../data/datasources/vault_local_datasource.dart';
-
-final _initializedDatasource = VaultLocalDatasource();
-
-Future<void> initializeDatasource() async {
-  await _initializedDatasource.init();
-}
-
-final vaultLocalDatasourceProvider = Provider<VaultLocalDatasource>((ref) {
-  return _initializedDatasource;
-});
+import '../../../../core/di/vault_datasource_provider.dart';
 
 final vaultRepositoryProvider = Provider<VaultRepository>((ref) {
   final localDatasource = ref.watch(vaultLocalDatasourceProvider);
