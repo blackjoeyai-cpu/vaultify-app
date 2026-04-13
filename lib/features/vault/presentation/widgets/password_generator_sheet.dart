@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../shared/services/secure_clipboard_service.dart';
+import '../../../settings/application/providers/settings_provider.dart';
 import '../../application/providers/password_generator_provider.dart';
 
 class PasswordGeneratorSheet extends ConsumerWidget {
@@ -57,13 +58,23 @@ class PasswordGeneratorSheet extends ConsumerWidget {
                 ),
                 IconButton(
                   icon: const Icon(Icons.copy),
-                  onPressed: () {
-                    Clipboard.setData(
-                      ClipboardData(text: generatorState.password),
+                  onPressed: () async {
+                    final settings = ref.read(settingsProvider);
+                    await SecureClipboardService.copyWithAutoClearSetting(
+                      generatorState.password,
+                      settings.clipboardAutoClearEnabled,
                     );
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Password copied')),
-                    );
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            settings.clipboardAutoClearEnabled
+                                ? 'Password copied (auto-clears in 30s)'
+                                : 'Password copied',
+                          ),
+                        ),
+                      );
+                    }
                   },
                 ),
                 IconButton(

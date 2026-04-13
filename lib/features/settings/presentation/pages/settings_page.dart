@@ -63,6 +63,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               },
             ),
           ),
+          _buildSettingsTile(
+            icon: Icons.content_paste_off,
+            title: 'Auto-clear clipboard',
+            subtitle: 'Clear clipboard 30 seconds after copying',
+            trailing: Switch(
+              value: settings.clipboardAutoClearEnabled,
+              onChanged: (value) {
+                ref
+                    .read(settingsProvider.notifier)
+                    .setClipboardAutoClearEnabled(value);
+              },
+            ),
+          ),
           const SizedBox(height: 24),
           _buildSectionHeader('About'),
           _buildSettingsTile(

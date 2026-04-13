@@ -11,4 +11,6 @@ class StorageKeys {
   static const String autoLockEnabled = 'auto_lock_enabled';
   static const String autoLockDuration = 'auto_lock_duration';
   static const String biometricEnabled = 'biometric_enabled';
+  static const String clipboardAutoClearEnabled =
+      'clipboard_auto_clear_enabled';
 }
