@@ -9,8 +9,6 @@ class AppConstants {
   static const int ivLength = 12;
   static const int keyLength = 32;
 
-  static const String biometricKey = 'vaultify_biometric_secure_key_2024';
-
   static const Duration autoLockDuration = Duration(minutes: 5);
   static const Duration splashDuration = Duration(seconds: 2);
 

@@ -5,7 +5,6 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/theme/app_theme.dart';
 import '../../features/auth/application/providers/auth_provider.dart';
-import '../../features/settings/application/providers/settings_provider.dart';
 
 class LoadingOverlay extends ConsumerStatefulWidget {
   final String message;
@@ -27,17 +26,14 @@ class _LoadingOverlayState extends ConsumerState<LoadingOverlay> {
 
   Future<void> _checkAuthAndNavigate() async {
     await ref.read(authProvider.notifier).checkAuthStatus();
-    await ref.read(settingsProvider.notifier).loadSettings();
 
     if (!mounted) return;
 
     final authState = ref.read(authProvider);
-    final settings = ref.read(settingsProvider);
 
     if (!authState.hasMasterPassword) {
       context.go('/register');
-    } else if (authState.status == AuthStatus.authenticated &&
-        settings.autoLockEnabled) {
+    } else if (authState.status == AuthStatus.authenticated) {
       context.go('/vault');
     } else {
       context.go('/lock');
