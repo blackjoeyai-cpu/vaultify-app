@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
@@ -15,10 +16,38 @@ class VaultifyApp extends ConsumerStatefulWidget {
 
 class _VaultifyAppState extends ConsumerState<VaultifyApp>
     with WidgetsBindingObserver {
+  late final void Function(AuthState? previous, AuthState next) _authListener;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+
+    _authListener = (previous, next) {
+      if (previous == null) return;
+
+      final isUnauthenticated = next.status == AuthStatus.unauthenticated;
+      final wasAuthenticated = previous.status == AuthStatus.authenticated;
+
+      if (isUnauthenticated && wasAuthenticated) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          final currentPath = GoRouterState.of(context).matchedLocation;
+          final protectedPaths = [
+            AppRouter.vault,
+            AppRouter.settings,
+            AppRouter.addPassword,
+          ];
+          final isOnProtectedPage = protectedPaths.any(
+            (path) => currentPath.startsWith(path),
+          );
+
+          if (isOnProtectedPage) {
+            context.go(AppRouter.lock);
+          }
+        });
+      }
+    };
   }
 
   @override
@@ -52,6 +81,7 @@ class _VaultifyAppState extends ConsumerState<VaultifyApp>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AuthState>(authProvider, _authListener);
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
