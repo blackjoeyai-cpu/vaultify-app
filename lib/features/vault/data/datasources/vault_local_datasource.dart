@@ -3,16 +3,26 @@ import '../../domain/entities/password_entry.dart';
 import '../../../../core/constants/storage_keys.dart';
 
 class VaultLocalDatasource {
-  late Box<String> _passwordBox;
+  Box<String>? _passwordBox;
 
-  Future<void> init() async {
-    _passwordBox = await Hive.openBox<String>(StorageKeys.passwordEntries);
+  Future<void> init([Box<String>? passwordBox]) async {
+    _passwordBox =
+        passwordBox ?? await Hive.openBox<String>(StorageKeys.passwordEntries);
+  }
+
+  Box<String> get _box {
+    if (_passwordBox == null) {
+      throw StateError(
+        'VaultLocalDatasource not initialized. Call init() first.',
+      );
+    }
+    return _passwordBox!;
   }
 
   Future<List<PasswordEntry>> getAllPasswords() async {
     final entries = <PasswordEntry>[];
-    for (final key in _passwordBox.keys) {
-      final json = _passwordBox.get(key);
+    for (final key in _box.keys) {
+      final json = _box.get(key);
       if (json != null) {
         entries.add(_passwordEntryFromJson(json));
       }
@@ -21,17 +31,17 @@ class VaultLocalDatasource {
   }
 
   Future<PasswordEntry?> getPasswordById(String id) async {
-    final json = _passwordBox.get(id);
+    final json = _box.get(id);
     if (json == null) return null;
     return _passwordEntryFromJson(json);
   }
 
   Future<void> savePassword(PasswordEntry entry) async {
-    await _passwordBox.put(entry.id, _passwordEntryToJson(entry));
+    await _box.put(entry.id, _passwordEntryToJson(entry));
   }
 
   Future<void> deletePassword(String id) async {
-    await _passwordBox.delete(id);
+    await _box.delete(id);
   }
 
   PasswordEntry _passwordEntryFromJson(String json) {

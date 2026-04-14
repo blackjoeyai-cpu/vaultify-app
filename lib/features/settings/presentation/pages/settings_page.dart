@@ -297,10 +297,11 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           ),
           TextButton(
             onPressed: () async {
+              final goRouter = GoRouter.of(context);
               Navigator.of(context).pop();
               await ref.read(authProvider.notifier).logout();
               if (mounted) {
-                context.go(AppRouter.login);
+                goRouter.go(AppRouter.login);
               }
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
