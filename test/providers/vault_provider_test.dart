@@ -43,7 +43,7 @@ void main() {
     final mockEncryption = MockEncryptionService();
     vaultLocalDatasource = VaultLocalDatasource(
       mockEncryption,
-      sessionNotifier,
+      () => sessionNotifier.getMasterPassword(),
     );
     vaultLocalDatasource.init(mockBox);
     vaultRepository = VaultRepositoryImpl(vaultLocalDatasource);

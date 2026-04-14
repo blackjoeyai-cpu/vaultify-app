@@ -107,25 +107,33 @@ class PasswordGeneratorSheet extends ConsumerWidget {
                 label: 'ABC',
                 isSelected: generatorState.includeUppercase,
                 onTap: generator.toggleUppercase,
-                enabled: !_isOnlyOptionEnabled(generatorState),
+                enabled:
+                    !(generatorState.includeUppercase &&
+                        _isOnlyOptionEnabled(generatorState)),
               ),
               _buildToggleChip(
                 label: 'abc',
                 isSelected: generatorState.includeLowercase,
                 onTap: generator.toggleLowercase,
-                enabled: !_isOnlyOptionEnabled(generatorState),
+                enabled:
+                    !(generatorState.includeLowercase &&
+                        _isOnlyOptionEnabled(generatorState)),
               ),
               _buildToggleChip(
                 label: '123',
                 isSelected: generatorState.includeNumbers,
                 onTap: generator.toggleNumbers,
-                enabled: !_isOnlyOptionEnabled(generatorState),
+                enabled:
+                    !(generatorState.includeNumbers &&
+                        _isOnlyOptionEnabled(generatorState)),
               ),
               _buildToggleChip(
                 label: '#\$%',
                 isSelected: generatorState.includeSymbols,
                 onTap: generator.toggleSymbols,
-                enabled: !_isOnlyOptionEnabled(generatorState),
+                enabled:
+                    !(generatorState.includeSymbols &&
+                        _isOnlyOptionEnabled(generatorState)),
               ),
             ],
           ),

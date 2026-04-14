@@ -1,15 +1,14 @@
 import 'package:hive/hive.dart';
 import '../../domain/entities/password_entry.dart';
 import '../../../../core/constants/storage_keys.dart';
-import '../../../../shared/services/session_provider.dart';
 import '../../../../shared/services/encryption_service.dart';
 
 class VaultLocalDatasource {
   final EncryptionService _encryptionService;
-  final SessionNotifier _sessionNotifier;
+  final String? Function() _getMasterPassword;
   Box<String>? _passwordBox;
 
-  VaultLocalDatasource(this._encryptionService, this._sessionNotifier);
+  VaultLocalDatasource(this._encryptionService, this._getMasterPassword);
 
   Future<void> init([Box<String>? passwordBox]) async {
     _passwordBox =
@@ -25,7 +24,7 @@ class VaultLocalDatasource {
     return _passwordBox!;
   }
 
-  String? get _masterPassword => _sessionNotifier.getMasterPassword();
+  String? get _masterPassword => _getMasterPassword();
 
   Future<List<PasswordEntry>> getAllPasswords() async {
     final masterPassword = _masterPassword;

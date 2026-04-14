@@ -6,6 +6,7 @@ import '../../data/datasources/auth_local_datasource.dart';
 import '../../../../shared/services/encryption_service.dart';
 import '../../../../shared/services/biometric_service.dart';
 import '../../../../shared/services/session_provider.dart';
+import '../../../../core/di/vault_datasource_provider.dart';
 import '../../../settings/application/providers/settings_provider.dart';
 import 'auth_timer_provider.dart';
 
@@ -98,6 +99,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       if (session != null && session.expiry.isAfter(DateTime.now())) {
         final settings = _ref.read(settingsProvider);
+        if (session.masterPassword != null) {
+          _ref.read(sessionProvider.notifier).unlock(session.masterPassword!);
+          setMasterPasswordCallback(
+            () => _ref.read(sessionProvider).masterPassword,
+          );
+        }
         if (settings.autoLockEnabled) {
           _ref.read(authTimerProvider.notifier).startTimer(session.expiry);
         }
@@ -134,6 +141,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       await _authRepository.createMasterPassword(password);
       _ref.read(sessionProvider.notifier).unlock(password);
+      setMasterPasswordCallback(
+        () => _ref.read(sessionProvider).masterPassword,
+      );
       state = state.copyWith(
         hasMasterPassword: true,
         status: AuthStatus.authenticated,
@@ -154,6 +164,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final isValid = await _authRepository.verifyMasterPassword(password);
       if (isValid) {
         _ref.read(sessionProvider.notifier).unlock(password);
+        setMasterPasswordCallback(
+          () => _ref.read(sessionProvider).masterPassword,
+        );
         if (saveSession) {
           final settings = _ref.read(settingsProvider);
           final expiry = DateTime.now().add(
@@ -216,6 +229,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final session = await _authRepository.getSession();
       if (session != null && session.masterPassword != null) {
         _ref.read(sessionProvider.notifier).unlock(session.masterPassword!);
+        setMasterPasswordCallback(
+          () => _ref.read(sessionProvider).masterPassword,
+        );
       }
 
       final settings = _ref.read(settingsProvider);

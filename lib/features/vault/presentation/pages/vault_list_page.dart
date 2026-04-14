@@ -15,19 +15,29 @@ class VaultListPage extends ConsumerStatefulWidget {
   ConsumerState<VaultListPage> createState() => _VaultListPageState();
 }
 
-class _VaultListPageState extends ConsumerState<VaultListPage> {
+class _VaultListPageState extends ConsumerState<VaultListPage>
+    with WidgetsBindingObserver {
   final _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(vaultProvider.notifier).loadPasswords();
     });
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      ref.read(vaultProvider.notifier).loadPasswords();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _searchController.dispose();
     super.dispose();
   }
@@ -102,7 +112,12 @@ class _VaultListPageState extends ConsumerState<VaultListPage> {
                       final entry = vaultState.filteredPasswords[index];
                       return PasswordCard(
                         entry: entry,
-                        onTap: () => context.push('/vault/${entry.id}'),
+                        onTap: () async {
+                          await context.push('/vault/${entry.id}');
+                          if (mounted) {
+                            ref.read(vaultProvider.notifier).loadPasswords();
+                          }
+                        },
                       );
                     },
                   ),
@@ -110,7 +125,12 @@ class _VaultListPageState extends ConsumerState<VaultListPage> {
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => context.push(AppRouter.addPassword),
+        onPressed: () async {
+          await context.push(AppRouter.addPassword);
+          if (mounted) {
+            ref.read(vaultProvider.notifier).loadPasswords();
+          }
+        },
         backgroundColor: AppTheme.primaryColor,
         child: const Icon(Icons.add),
       ),
