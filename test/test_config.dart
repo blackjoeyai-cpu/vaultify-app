@@ -2,19 +2,22 @@ import 'dart:io';
 
 class TestConfig {
   static String get correctPassword =>
-      Platform.environment['TEST_CORRECT_PASSWORD'] ?? 'TestPassword123!';
+      Platform.environment['TEST_CORRECT_PASSWORD'] ??
+      (throw StateError('TEST_CORRECT_PASSWORD not set'));
 
   static String get wrongPassword =>
-      Platform.environment['TEST_WRONG_PASSWORD'] ?? 'WrongPassword456!';
+      Platform.environment['TEST_WRONG_PASSWORD'] ??
+      (throw StateError('TEST_WRONG_PASSWORD not set'));
 
   static String get differentPassword =>
       Platform.environment['TEST_DIFFERENT_PASSWORD'] ??
-      'DifferentPassword456!';
+      (throw StateError('TEST_DIFFERENT_PASSWORD not set'));
 
   static String get testSecretData =>
-      Platform.environment['TEST_SECRET_DATA'] ?? 'TestSecretData';
+      Platform.environment['TEST_SECRET_DATA'] ??
+      (throw StateError('TEST_SECRET_DATA not set'));
 
   static String get testBiometricCredential =>
       Platform.environment['TEST_BIOMETRIC_CREDENTIAL'] ??
-      'encryptedBiometricPassword123';
+      (throw StateError('TEST_BIOMETRIC_CREDENTIAL not set'));
 }
