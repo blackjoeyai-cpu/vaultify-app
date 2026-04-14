@@ -14,6 +14,8 @@ A secure, offline-first Flutter password vault built with Clean Architecture.
 - [x] GoRouter navigation
 - [x] Hive local storage
 - [x] Flutter Secure Storage integration
+- [x] Unit tests (auth, vault, encryption, password generator)
+- [x] GitHub Actions CI/CD pipeline
 
 #### Authentication
 - [x] Login page
