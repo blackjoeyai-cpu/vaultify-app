@@ -211,7 +211,7 @@ flutter analyze
 - [x] Login page
 - [x] Register page
 - [x] Lock page
-- [ ] Route guards (auth protection)
+- [x] Route guards (auth protection)
 
 ### Onboarding
 - [x] Onboarding slides (3 pages)
@@ -222,6 +222,7 @@ flutter analyze
 - [x] Category filtering (Social, Financial, Work, Others)
 - [x] Add password page
 - [x] Password detail page
+- [x] Edit password flow
 - [x] Delete password flow
 - [x] Password generator UI integration
 - [x] Favorite toggle
@@ -230,15 +231,16 @@ flutter analyze
 - [x] Settings page UI
 - [x] Auto-lock toggle UI
 - [x] Auto-lock toggle implementation
-- [ ] Auto-lock timer implementation
-- [ ] Biometric authentication
+- [x] Auto-lock timer implementation
+- [x] Biometric authentication
+- [x] Clipboard auto-clear setting
 
 ### Security
 - [x] Encryption service (AES-256-GCM with PBKDF2)
 - [x] Secure clipboard service
 - [x] Session persistence across app restarts
+- [x] Auto-lock on app background
 - [ ] Password encryption in Hive storage
-- [ ] Auto-lock on app background
 
 ### Infrastructure
 - [x] Clean architecture (4 layers)

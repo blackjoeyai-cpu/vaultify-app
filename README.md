@@ -45,15 +45,15 @@ A secure, offline-first Flutter password vault built with Clean Architecture.
 - [x] Encryption service (AES-256-GCM with PBKDF2)
 - [x] Secure clipboard service
 - [x] Session persistence across app restarts
+- [x] Auto-lock on app background
+- [x] Biometric authentication
+- [x] Route guards (auth protection)
+- [x] Edit password flow
 
 ---
 
 ### ⏳ In Progress
 
-- [ ] Edit password flow
-- [ ] Route guards (auth protection)
-- [ ] Biometric authentication
-- [ ] Auto-lock on app background
 - [ ] Password encryption in Hive storage
 
 ---
