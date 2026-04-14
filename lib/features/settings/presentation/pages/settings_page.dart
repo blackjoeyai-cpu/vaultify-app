@@ -89,7 +89,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
               final isValid = await ref
                   .read(authProvider.notifier)
-                  .login(password, saveSession: false);
+                  .verifyPassword(password);
 
               if (isValid) {
                 await ref

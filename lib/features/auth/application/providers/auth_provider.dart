@@ -171,6 +171,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> verifyPassword(String password) async {
+    try {
+      return await _authRepository.verifyMasterPassword(password);
+    } catch (e) {
+      return false;
+    }
+  }
+
   Future<bool> loginWithBiometric() async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
