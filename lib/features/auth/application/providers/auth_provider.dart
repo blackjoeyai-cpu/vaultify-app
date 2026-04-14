@@ -6,6 +6,7 @@ import '../../data/datasources/auth_local_datasource.dart';
 import '../../../../shared/services/encryption_service.dart';
 import '../../../../shared/services/biometric_service.dart';
 import '../../../settings/application/providers/settings_provider.dart';
+import 'auth_timer_provider.dart';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   return const FlutterSecureStorage(
@@ -82,6 +83,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final biometricCred = await _authRepository.getBiometricCredential();
       final hasBiometricCred = biometricCred != null;
 
+      await _ref.read(settingsProvider.notifier).loadSettings();
+
       if (!hasMasterPassword) {
         state = state.copyWith(
           hasMasterPassword: false,
@@ -94,6 +97,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final session = await _authRepository.getSession();
 
       if (session != null && session.expiry.isAfter(DateTime.now())) {
+        final settings = _ref.read(settingsProvider);
+        if (settings.autoLockEnabled) {
+          _ref.read(authTimerProvider.notifier).startTimer(session.expiry);
+        }
         state = state.copyWith(
           hasMasterPassword: true,
           isOnboardingComplete: isOnboardingComplete,
@@ -142,6 +149,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
             Duration(minutes: settings.autoLockDuration),
           );
           await _authRepository.saveSession(expiry);
+          if (settings.autoLockEnabled) {
+            _ref.read(authTimerProvider.notifier).startTimer(expiry);
+          }
         }
         state = state.copyWith(status: AuthStatus.authenticated);
         return true;
@@ -189,6 +199,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
         Duration(minutes: settings.autoLockDuration),
       );
       await _authRepository.saveSession(expiry);
+      if (settings.autoLockEnabled) {
+        _ref.read(authTimerProvider.notifier).startTimer(expiry);
+      }
 
       state = state.copyWith(status: AuthStatus.authenticated);
       return true;
@@ -230,11 +243,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   void lockApp() {
+    _ref.read(authTimerProvider.notifier).resetTimer();
     state = state.copyWith(status: AuthStatus.unauthenticated);
   }
 
   void logout() {
     _authRepository.clearSession();
+    _ref.read(authTimerProvider.notifier).resetTimer();
     state = state.copyWith(status: AuthStatus.unauthenticated);
   }
 }
