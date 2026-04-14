@@ -16,8 +16,4 @@ class TestConfig {
   static String get testSecretData =>
       Platform.environment['TEST_SECRET_DATA'] ??
       (throw StateError('TEST_SECRET_DATA not set'));
-
-  static String get testBiometricCredential =>
-      Platform.environment['TEST_BIOMETRIC_CREDENTIAL'] ??
-      (throw StateError('TEST_BIOMETRIC_CREDENTIAL not set'));
 }

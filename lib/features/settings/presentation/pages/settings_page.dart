@@ -45,35 +45,26 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
         final confirmed = await _showBiometricSetupDialog();
         if (confirmed == true) {
           ref.read(settingsProvider.notifier).setBiometricEnabled(true);
+          ref.read(authProvider.notifier).enableBiometric();
         }
       }
     } else {
       ref.read(settingsProvider.notifier).setBiometricEnabled(false);
-      await ref.read(authProvider.notifier).clearBiometricCredential();
+      ref.read(authProvider.notifier).disableBiometric();
     }
   }
 
   Future<bool?> _showBiometricSetupDialog() async {
-    final passwordController = TextEditingController();
     return showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppTheme.surfaceColor,
         title: const Text('Setup Biometric'),
-        content: Column(
+        content: const Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              'Enter your master password to enable biometric unlock.',
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: passwordController,
-              obscureText: true,
-              decoration: const InputDecoration(
-                labelText: 'Master Password',
-                hintText: 'Enter your password',
-              ),
+            Text(
+              'You will be able to unlock the app using your biometric credential (fingerprint or face) instead of entering your master password.',
             ),
           ],
         ),
@@ -83,29 +74,8 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () async {
-              final password = passwordController.text;
-              if (password.isEmpty) return;
-
-              final isValid = await ref
-                  .read(authProvider.notifier)
-                  .verifyPassword(password);
-
-              if (isValid) {
-                await ref
-                    .read(authProvider.notifier)
-                    .saveBiometricCredential(password);
-                if (context.mounted) Navigator.of(context).pop(true);
-              } else {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Invalid password'),
-                      backgroundColor: AppTheme.errorColor,
-                    ),
-                  );
-                }
-              }
+            onPressed: () {
+              Navigator.of(context).pop(true);
             },
             child: const Text('Enable'),
           ),

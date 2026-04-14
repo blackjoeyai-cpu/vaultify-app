@@ -212,27 +212,5 @@ void main() {
         expect(hash, isNull);
       });
     });
-
-    group('biometric encryption', () {
-      test('should encrypt password for biometric storage', () async {
-        final encrypted = await encryptionService.encryptForBiometric(
-          TestConfig.correctPassword,
-        );
-
-        expect(encrypted, isNotNull);
-        expect(encrypted.isNotEmpty, isTrue);
-      });
-
-      test('should decrypt biometric encrypted password', () async {
-        final encrypted = await encryptionService.encryptForBiometric(
-          TestConfig.correctPassword,
-        );
-        final decrypted = await encryptionService.decryptForBiometric(
-          encrypted,
-        );
-
-        expect(decrypted, equals(TestConfig.correctPassword));
-      });
-    });
   });
 }

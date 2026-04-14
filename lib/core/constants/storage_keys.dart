@@ -15,6 +15,4 @@ class StorageKeys {
       'clipboard_auto_clear_enabled';
   static const String sessionToken = 'session_token';
   static const String sessionExpiry = 'session_expiry';
-  static const String biometricCredential = 'biometric_credential';
-  static const String biometricEncryptionKey = 'biometric_encryption_key';
 }

@@ -163,31 +163,25 @@ void main() {
       });
     });
 
-    group('biometric credentials', () {
-      test('should save and retrieve biometric credential', () async {
-        await authRepository.saveBiometricCredential(
-          TestConfig.testBiometricCredential,
-        );
-        final result = await authRepository.getBiometricCredential();
+    group('biometric', () {
+      test('should enable biometric', () async {
+        await authRepository.enableBiometric();
 
-        expect(result, equals(TestConfig.testBiometricCredential));
+        final isEnabled = await authRepository.isBiometricEnabled();
+        expect(isEnabled, isTrue);
       });
 
-      test('should return null when no biometric credential exists', () async {
-        final result = await authRepository.getBiometricCredential();
+      test('should disable biometric', () async {
+        await authRepository.enableBiometric();
+        await authRepository.disableBiometric();
 
-        expect(result, isNull);
+        final isEnabled = await authRepository.isBiometricEnabled();
+        expect(isEnabled, isFalse);
       });
 
-      test('should clear biometric credential', () async {
-        await authRepository.saveBiometricCredential(
-          TestConfig.testBiometricCredential,
-        );
-
-        await authRepository.clearBiometricCredential();
-
-        final result = await authRepository.getBiometricCredential();
-        expect(result, isNull);
+      test('should return false when biometric not enabled', () async {
+        final isEnabled = await authRepository.isBiometricEnabled();
+        expect(isEnabled, isFalse);
       });
     });
   });

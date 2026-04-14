@@ -58,17 +58,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> saveBiometricCredential(String encryptedPassword) async {
-    await _localDatasource.saveBiometricCredential(encryptedPassword);
+  Future<void> enableBiometric() async {
+    await _localDatasource.setBiometricEnabled(true);
   }
 
   @override
-  Future<String?> getBiometricCredential() async {
-    return await _localDatasource.getBiometricCredential();
+  Future<void> disableBiometric() async {
+    await _localDatasource.setBiometricEnabled(false);
   }
 
   @override
-  Future<void> clearBiometricCredential() async {
-    await _localDatasource.clearBiometricCredential();
+  Future<bool> isBiometricEnabled() async {
+    return await _localDatasource.isBiometricEnabled();
   }
 }

@@ -8,7 +8,7 @@ abstract class AuthRepository {
   Future<void> saveSession(DateTime expiry);
   Future<({String token, DateTime expiry})?> getSession();
   Future<void> clearSession();
-  Future<void> saveBiometricCredential(String encryptedPassword);
-  Future<String?> getBiometricCredential();
-  Future<void> clearBiometricCredential();
+  Future<void> enableBiometric();
+  Future<void> disableBiometric();
+  Future<bool> isBiometricEnabled();
 }

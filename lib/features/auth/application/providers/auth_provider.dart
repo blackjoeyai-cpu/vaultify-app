@@ -80,8 +80,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final hasMasterPassword = await _authRepository.hasMasterPassword();
       final isOnboardingComplete = await _authRepository.isOnboardingComplete();
-      final biometricCred = await _authRepository.getBiometricCredential();
-      final hasBiometricCred = biometricCred != null;
+      final isBiometricEnabled = await _authRepository.isBiometricEnabled();
 
       await _ref.read(settingsProvider.notifier).loadSettings();
 
@@ -104,14 +103,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(
           hasMasterPassword: true,
           isOnboardingComplete: isOnboardingComplete,
-          hasBiometricCredential: hasBiometricCred,
+          hasBiometricCredential: isBiometricEnabled,
           status: AuthStatus.authenticated,
         );
       } else {
         state = state.copyWith(
           hasMasterPassword: true,
           isOnboardingComplete: isOnboardingComplete,
-          hasBiometricCredential: hasBiometricCred,
+          hasBiometricCredential: isBiometricEnabled,
           status: AuthStatus.unauthenticated,
         );
       }
@@ -191,6 +190,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<bool> loginWithBiometric() async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
+      final isBiometricEnabled = await _authRepository.isBiometricEnabled();
+      if (!isBiometricEnabled) {
+        state = state.copyWith(
+          status: AuthStatus.unauthenticated,
+          error: 'Biometric not enabled',
+        );
+        return false;
+      }
+
       final biometricService = _ref.read(biometricServiceProvider);
       final authenticated = await biometricService.authenticate();
 
@@ -198,15 +206,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = state.copyWith(
           status: AuthStatus.unauthenticated,
           error: 'Biometric authentication failed',
-        );
-        return false;
-      }
-
-      final encryptedPassword = await _authRepository.getBiometricCredential();
-      if (encryptedPassword == null) {
-        state = state.copyWith(
-          status: AuthStatus.unauthenticated,
-          error: 'No biometric credential found',
         );
         return false;
       }
@@ -231,16 +230,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> saveBiometricCredential(String password) async {
-    final encryptedPassword = await _ref
-        .read(encryptionServiceProvider)
-        .encryptForBiometric(password);
-    await _authRepository.saveBiometricCredential(encryptedPassword);
+  Future<void> enableBiometric() async {
+    await _authRepository.enableBiometric();
     state = state.copyWith(hasBiometricCredential: true);
   }
 
-  Future<void> clearBiometricCredential() async {
-    await _authRepository.clearBiometricCredential();
+  Future<void> disableBiometric() async {
+    await _authRepository.disableBiometric();
     state = state.copyWith(hasBiometricCredential: false);
   }
 

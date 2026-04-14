@@ -44,7 +44,6 @@ jobs:
           TEST_WRONG_PASSWORD: ${{ secrets.TEST_WRONG_PASSWORD }}
           TEST_DIFFERENT_PASSWORD: ${{ secrets.TEST_DIFFERENT_PASSWORD }}
           TEST_SECRET_DATA: ${{ secrets.TEST_SECRET_DATA }}
-          TEST_BIOMETRIC_CREDENTIAL: ${{ secrets.TEST_BIOMETRIC_CREDENTIAL }}
       
       - uses: actions/upload-artifact@v4
         if: always()

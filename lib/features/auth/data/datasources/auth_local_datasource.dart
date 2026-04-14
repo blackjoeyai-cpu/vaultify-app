@@ -74,19 +74,16 @@ class AuthLocalDatasource {
     await _secureStorage.delete(key: StorageKeys.sessionExpiry);
   }
 
-  Future<void> saveBiometricCredential(String encryptedPassword) async {
+  Future<void> setBiometricEnabled(bool enabled) async {
     await _secureStorage.write(
-      key: StorageKeys.biometricCredential,
-      value: encryptedPassword,
+      key: StorageKeys.biometricEnabled,
+      value: enabled.toString(),
     );
   }
 
-  Future<String?> getBiometricCredential() async {
-    return await _secureStorage.read(key: StorageKeys.biometricCredential);
-  }
-
-  Future<void> clearBiometricCredential() async {
-    await _secureStorage.delete(key: StorageKeys.biometricCredential);
+  Future<bool> isBiometricEnabled() async {
+    final value = await _secureStorage.read(key: StorageKeys.biometricEnabled);
+    return value == 'true';
   }
 
   Future<void> clearAll() async {
