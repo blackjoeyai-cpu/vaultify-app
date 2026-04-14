@@ -1,3 +1,4 @@
+import 'package:uuid/uuid.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_local_datasource.dart';
 import '../../../../shared/services/encryption_service.dart';
@@ -5,6 +6,7 @@ import '../../../../shared/services/encryption_service.dart';
 class AuthRepositoryImpl implements AuthRepository {
   final AuthLocalDatasource _localDatasource;
   final EncryptionService _encryptionService;
+  final _uuid = const Uuid();
 
   AuthRepositoryImpl(this._localDatasource, this._encryptionService);
 
@@ -26,8 +28,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
   @override
   Future<void> logout() async {
-    // For security, we don't clear data on logout
-    // Just update the last unlock time
+    await _localDatasource.clearSession();
   }
 
   @override
@@ -38,5 +39,36 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<void> completeOnboarding() async {
     await _localDatasource.setOnboardingComplete(true);
+  }
+
+  @override
+  Future<void> saveSession(DateTime expiry) async {
+    final token = _uuid.v4();
+    await _localDatasource.saveSession(token, expiry);
+  }
+
+  @override
+  Future<({String token, DateTime expiry})?> getSession() async {
+    return await _localDatasource.getSession();
+  }
+
+  @override
+  Future<void> clearSession() async {
+    await _localDatasource.clearSession();
+  }
+
+  @override
+  Future<void> enableBiometric() async {
+    await _localDatasource.setBiometricEnabled(true);
+  }
+
+  @override
+  Future<void> disableBiometric() async {
+    await _localDatasource.setBiometricEnabled(false);
+  }
+
+  @override
+  Future<bool> isBiometricEnabled() async {
+    return await _localDatasource.isBiometricEnabled();
   }
 }

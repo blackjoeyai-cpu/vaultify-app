@@ -4,9 +4,10 @@ on:
   push:
     branches:
       - dev
+      - '**'  # All branches for feature branch testing
   pull_request:
     branches:
-      - main
+      - dev
 
 jobs:
   analyze:
@@ -14,10 +15,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
       
       - uses: subosito/flutter-action@v2
         with:
@@ -27,18 +24,12 @@ jobs:
       - run: flutter pub get
       
       - run: flutter analyze
-        env:
-          FLUTTER_ANALYZE_NO_WARNING: 1
 
   test:
     name: Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
       
       - uses: subosito/flutter-action@v2
         with:
@@ -47,7 +38,19 @@ jobs:
       
       - run: flutter pub get
       
-      - run: flutter test
+      - run: flutter test --reporter compact
+        env:
+          TEST_CORRECT_PASSWORD: ${{ secrets.TEST_CORRECT_PASSWORD }}
+          TEST_WRONG_PASSWORD: ${{ secrets.TEST_WRONG_PASSWORD }}
+          TEST_DIFFERENT_PASSWORD: ${{ secrets.TEST_DIFFERENT_PASSWORD }}
+          TEST_SECRET_DATA: ${{ secrets.TEST_SECRET_DATA }}
+      
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-results
+          path: test_results/
+          retention-days: 7
 
   build-android:
     name: Build Android (Debug)
@@ -55,10 +58,6 @@ jobs:
     needs: [analyze, test]
     steps:
       - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
       
       - uses: subosito/flutter-action@v2
         with:
@@ -68,8 +67,6 @@ jobs:
       - run: flutter pub get
       
       - run: flutter build apk --debug
-        env:
-          FLUTTER_BUILD_APPBundle: false
       
       - uses: actions/upload-artifact@v4
         with:

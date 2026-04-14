@@ -142,6 +142,64 @@ A feature is ONLY complete if:
 - ✅ Code implemented
 - ✅ Reviewer approved
 - ✅ Security approved
+- ✅ All tests pass (`flutter test`)
+- ✅ No analysis errors/warnings (`flutter analyze`)
+
+---
+
+# 🧪 TESTING REQUIREMENTS
+
+> All new features and code changes MUST pass tests before merging.
+
+## Test Framework
+
+The project uses `flutter_test` with manual mocks for unit testing.
+
+### Test Structure
+
+```
+test/
+├── mocks/                    # Mock implementations
+│   ├── mock_secure_storage.dart
+│   └── mock_hive_box.dart
+├── services/                 # Service layer tests
+│   └── encryption_service_test.dart
+├── repositories/            # Repository layer tests
+│   ├── auth_repository_test.dart
+│   └── vault_repository_test.dart
+└── providers/               # State management tests
+    ├── auth_provider_test.dart
+    ├── vault_provider_test.dart
+    └── password_generator_test.dart
+```
+
+### Running Tests
+
+```bash
+# Run all tests
+flutter test
+
+# Run specific test file
+flutter test test/providers/vault_provider_test.dart
+```
+
+### Code Analysis
+
+```bash
+# Check for errors/warnings
+flutter analyze
+```
+
+### Test Requirements
+
+- **ALL tests must pass** before any PR can be merged
+- **No errors or warnings** in `flutter analyze` output
+- New features MUST include corresponding unit tests
+- Test coverage areas:
+  - Authentication flow (master password, session, biometric)
+  - Vault CRUD operations (add, update, delete, search, filter)
+  - Password generator (generation, strength calculation)
+  - Encryption/decryption logic
 
 ---
 
@@ -165,18 +223,20 @@ A feature is ONLY complete if:
 - [x] Add password page
 - [x] Password detail page
 - [x] Delete password flow
-- [ ] Edit password flow
-- [ ] Password generator UI integration
-- [ ] Favorite toggle
+- [x] Password generator UI integration
+- [x] Favorite toggle
 
 ### Settings
 - [x] Settings page UI
 - [x] Auto-lock toggle UI
+- [x] Auto-lock toggle implementation
 - [ ] Auto-lock timer implementation
 - [ ] Biometric authentication
 
 ### Security
 - [x] Encryption service (AES-256-GCM with PBKDF2)
+- [x] Secure clipboard service
+- [x] Session persistence across app restarts
 - [ ] Password encryption in Hive storage
 - [ ] Auto-lock on app background
 
@@ -186,7 +246,9 @@ A feature is ONLY complete if:
 - [x] GoRouter navigation
 - [x] Hive local storage
 - [x] Flutter Secure Storage integration
-- [ ] Memory persistence across app restarts
+- [x] Memory persistence across app restarts
+- [x] Unit tests (auth, vault, encryption, password generator)
+- [x] GitHub Actions CI/CD pipeline
 
 ---
 

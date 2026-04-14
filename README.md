@@ -14,7 +14,8 @@ A secure, offline-first Flutter password vault built with Clean Architecture.
 - [x] GoRouter navigation
 - [x] Hive local storage
 - [x] Flutter Secure Storage integration
-- [x] Memory persistence (memory/ directory)
+- [x] Unit tests (auth, vault, encryption, password generator)
+- [x] GitHub Actions CI/CD pipeline
 
 #### Authentication
 - [x] Login page
@@ -32,37 +33,27 @@ A secure, offline-first Flutter password vault built with Clean Architecture.
 - [x] Password detail page
 - [x] Delete password flow
 - [x] Password generator UI integration
+- [x] Favorite toggle
 
 #### Settings
 - [x] Settings page UI
 - [x] Auto-lock toggle UI
+- [x] Auto-lock toggle implementation
+- [x] Clipboard auto-clear setting
 
 #### Security
 - [x] Encryption service (AES-256-GCM with PBKDF2)
+- [x] Secure clipboard service
+- [x] Session persistence across app restarts
 
 ---
 
 ### ⏳ In Progress
 
-- [ ] Auto-lock timer implementation
-- [ ] Password encryption in Hive storage
-
----
-
-### 📋 Pending Features
-
-#### Authentication
-- [ ] Route guards (auth protection)
-
-#### Password Vault
 - [ ] Edit password flow
-- [ ] Favorite toggle
-
-#### Settings
+- [ ] Route guards (auth protection)
 - [ ] Biometric authentication
 - [ ] Auto-lock on app background
-
-#### Security
 - [ ] Password encryption in Hive storage
 
 ---

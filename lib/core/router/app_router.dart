@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../features/auth/application/providers/auth_provider.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/register_page.dart';
 import '../../features/auth/presentation/pages/lock_page.dart';
@@ -26,6 +27,51 @@ class AppRouter {
 
   static final GoRouter router = GoRouter(
     initialLocation: splash,
+    redirect: (context, state) {
+      final container = ProviderScope.containerOf(context);
+      final authState = container.read(authProvider);
+      final isAuthenticated = authState.status == AuthStatus.authenticated;
+      final isInitial = authState.status == AuthStatus.initial;
+      final isLoading = authState.status == AuthStatus.loading;
+
+      final currentPath = state.matchedLocation;
+      final isOnSplash = currentPath == splash;
+      final isOnOnboarding = currentPath == onboarding;
+      final isOnWelcome = currentPath == welcome;
+      final isOnLogin = currentPath == login;
+      final isOnRegister = currentPath == register;
+      final isOnLock = currentPath == lock;
+
+      if (isOnSplash || isInitial || isLoading) {
+        return null;
+      }
+
+      if (!authState.hasMasterPassword && !isOnRegister) {
+        if (!isOnOnboarding && !isOnWelcome) {
+          return welcome;
+        }
+        return null;
+      }
+
+      if (isOnLock && isAuthenticated) {
+        return vault;
+      }
+
+      if (!isAuthenticated &&
+          !isOnLock &&
+          !isOnLogin &&
+          !isOnRegister &&
+          !isOnOnboarding &&
+          !isOnWelcome) {
+        return lock;
+      }
+
+      if (isAuthenticated && (isOnLogin || isOnRegister)) {
+        return vault;
+      }
+
+      return null;
+    },
     routes: [
       GoRoute(
         path: splash,
