@@ -123,4 +123,19 @@ class EncryptionService {
   Future<void> clearAllData() async {
     await _secureStorage.deleteAll();
   }
+
+  Future<String> encryptMap(Map<String, dynamic> data, String password) async {
+    final jsonString = jsonEncode(data);
+    final encryptedBytes = await encrypt(jsonString, password);
+    return base64Encode(encryptedBytes);
+  }
+
+  Future<Map<String, dynamic>> decryptMap(
+    String encryptedData,
+    String password,
+  ) async {
+    final encryptedBytes = base64Decode(encryptedData);
+    final decryptedString = await decrypt(encryptedBytes, password);
+    return jsonDecode(decryptedString) as Map<String, dynamic>;
+  }
 }

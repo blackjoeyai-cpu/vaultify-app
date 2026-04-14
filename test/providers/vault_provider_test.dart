@@ -1,19 +1,50 @@
+import 'dart:convert';
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:vaultify/features/vault/application/providers/vault_provider.dart';
 import 'package:vaultify/features/vault/data/datasources/vault_local_datasource.dart';
 import 'package:vaultify/features/vault/data/repositories/vault_repository_impl.dart';
 import 'package:vaultify/features/vault/domain/entities/password_entry.dart';
+import 'package:vaultify/shared/services/encryption_service.dart';
+import 'package:vaultify/shared/services/session_provider.dart';
 import '../mocks/mock_hive_box.dart';
+import '../mocks/mock_secure_storage.dart';
+
+class MockEncryptionService extends EncryptionService {
+  MockEncryptionService() : super(MockSecureStorage());
+
+  @override
+  Future<String> encryptMap(Map<String, dynamic> data, String password) async {
+    final jsonString = jsonEncode(data);
+    return base64Encode(utf8.encode(jsonString));
+  }
+
+  @override
+  Future<Map<String, dynamic>> decryptMap(
+    String encryptedData,
+    String password,
+  ) async {
+    final decoded = utf8.decode(base64Decode(encryptedData));
+    return jsonDecode(decoded) as Map<String, dynamic>;
+  }
+}
 
 void main() {
   late MockHiveBox<String> mockBox;
   late VaultLocalDatasource vaultLocalDatasource;
   late VaultRepositoryImpl vaultRepository;
   late VaultNotifier vaultNotifier;
+  late SessionNotifier sessionNotifier;
 
   setUp(() {
     mockBox = MockHiveBox<String>();
-    vaultLocalDatasource = VaultLocalDatasource();
+    sessionNotifier = SessionNotifier();
+    sessionNotifier.unlock('testpassword');
+    final mockEncryption = MockEncryptionService();
+    vaultLocalDatasource = VaultLocalDatasource(
+      mockEncryption,
+      sessionNotifier,
+    );
     vaultLocalDatasource.init(mockBox);
     vaultRepository = VaultRepositoryImpl(vaultLocalDatasource);
     vaultNotifier = VaultNotifier(vaultRepository);

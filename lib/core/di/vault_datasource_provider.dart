@@ -1,12 +1,40 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../features/vault/data/datasources/vault_local_datasource.dart';
+import '../../shared/services/encryption_service.dart';
+import '../../shared/services/session_provider.dart';
 
-final _datasourceInstance = VaultLocalDatasource();
+final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
+  return const FlutterSecureStorage(
+    aOptions: AndroidOptions(encryptedSharedPreferences: true),
+  );
+});
+
+final encryptionServiceProvider = Provider<EncryptionService>((ref) {
+  final secureStorage = ref.watch(secureStorageProvider);
+  return EncryptionService(secureStorage);
+});
+
+VaultLocalDatasource? _datasourceInstance;
 
 Future<void> initializeVaultDatasource() async {
-  await _datasourceInstance.init();
+  final encryptionService = EncryptionService(
+    const FlutterSecureStorage(
+      aOptions: AndroidOptions(encryptedSharedPreferences: true),
+    ),
+  );
+  _datasourceInstance = VaultLocalDatasource(
+    encryptionService,
+    SessionNotifier(),
+  );
+  await _datasourceInstance!.init();
 }
 
 final vaultLocalDatasourceProvider = Provider<VaultLocalDatasource>((ref) {
-  return _datasourceInstance;
+  if (_datasourceInstance == null) {
+    throw StateError(
+      'VaultLocalDatasource not initialized. Call initializeVaultDatasource() first.',
+    );
+  }
+  return _datasourceInstance!;
 });
