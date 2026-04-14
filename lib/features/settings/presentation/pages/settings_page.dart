@@ -296,10 +296,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.of(context).pop();
-              ref.read(authProvider.notifier).logout();
-              context.go(AppRouter.login);
+              await ref.read(authProvider.notifier).logout();
+              if (mounted) {
+                context.go(AppRouter.login);
+              }
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('Delete'),

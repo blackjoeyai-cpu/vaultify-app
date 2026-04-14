@@ -264,8 +264,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.unauthenticated);
   }
 
-  void logout() {
-    _authRepository.clearSession();
+  Future<void> logout() async {
+    await _authRepository.clearSession();
     _ref.read(authTimerProvider.notifier).resetTimer();
     state = state.copyWith(status: AuthStatus.unauthenticated);
   }
