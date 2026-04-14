@@ -56,9 +56,16 @@ class AuthLocalDatasource {
     final token = await _secureStorage.read(key: StorageKeys.sessionToken);
     final expiryStr = await _secureStorage.read(key: StorageKeys.sessionExpiry);
     if (token == null || expiryStr == null) return null;
+
+    final expiryMs = int.tryParse(expiryStr);
+    if (expiryMs == null) {
+      await clearSession();
+      return null;
+    }
+
     return (
       token: token,
-      expiry: DateTime.fromMillisecondsSinceEpoch(int.parse(expiryStr)),
+      expiry: DateTime.fromMillisecondsSinceEpoch(expiryMs),
     );
   }
 

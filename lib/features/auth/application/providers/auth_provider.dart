@@ -116,7 +116,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
         );
       }
     } catch (e) {
-      state = state.copyWith(status: AuthStatus.initial, error: e.toString());
+      final hasMasterPassword = await _authRepository.hasMasterPassword();
+      final isOnboardingComplete = await _authRepository.isOnboardingComplete();
+      state = state.copyWith(
+        hasMasterPassword: hasMasterPassword,
+        isOnboardingComplete: isOnboardingComplete,
+        status: hasMasterPassword
+            ? AuthStatus.unauthenticated
+            : AuthStatus.initial,
+        error: e.toString(),
+      );
     }
   }
 
