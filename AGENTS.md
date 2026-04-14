@@ -247,6 +247,8 @@ flutter analyze
 - [x] Hive local storage
 - [x] Flutter Secure Storage integration
 - [x] Memory persistence across app restarts
+- [x] Unit tests (auth, vault, encryption, password generator)
+- [x] GitHub Actions CI/CD pipeline
 
 ---
 
