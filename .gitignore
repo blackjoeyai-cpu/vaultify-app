@@ -43,3 +43,7 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Test (local only - not tracked)
+/test/
+!test/widget_test.dart
