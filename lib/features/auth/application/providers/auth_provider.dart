@@ -96,32 +96,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
         return;
       }
 
-      final session = await _authRepository.getSession();
+      // Always start as unauthenticated on app startup for security.
+      // The session in storage is used for background auto-lock persistence,
+      // but fresh app starts should always require re-authentication.
+      state = state.copyWith(
+        hasMasterPassword: true,
+        isOnboardingComplete: isOnboardingComplete,
+        hasBiometricCredential: isBiometricEnabled,
+        status: AuthStatus.unauthenticated,
+      );
 
-      if (session != null && session.expiry.isAfter(DateTime.now())) {
-        final settings = _ref.read(settingsProvider);
-        if (session.masterPassword != null) {
-          _ref.read(sessionProvider.notifier).unlock(session.masterPassword!);
-          setMasterPasswordCallback(
-            () => _ref.read(sessionProvider).masterPassword,
-          );
-        }
-        if (settings.autoLockEnabled) {
-          _ref.read(authTimerProvider.notifier).startTimer(session.expiry);
-        }
-        state = state.copyWith(
-          hasMasterPassword: true,
-          isOnboardingComplete: isOnboardingComplete,
-          hasBiometricCredential: isBiometricEnabled,
-          status: AuthStatus.authenticated,
-        );
-      } else {
-        state = state.copyWith(
-          hasMasterPassword: true,
-          isOnboardingComplete: isOnboardingComplete,
-          hasBiometricCredential: isBiometricEnabled,
-          status: AuthStatus.unauthenticated,
-        );
+      // If biometric is NOT enabled, clear any existing session to ensure security
+      if (!isBiometricEnabled) {
+        await _authRepository.clearSession();
       }
     } catch (e) {
       final hasMasterPassword = await _authRepository.hasMasterPassword();
