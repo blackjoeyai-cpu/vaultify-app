@@ -21,6 +21,21 @@ class _LockPageState extends ConsumerState<LockPage> {
   int _failedAttempts = 0;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkBiometricOnStart();
+    });
+  }
+
+  Future<void> _checkBiometricOnStart() async {
+    final authState = ref.read(authProvider);
+    if (authState.hasBiometricCredential) {
+      await _unlockWithBiometric();
+    }
+  }
+
+  @override
   void dispose() {
     _passwordController.dispose();
     super.dispose();
