@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1+2] - 2026-04-15
+
+- Merge pull request #19 from blackjoeyai-cpu/dev
+
+Merge the fix for release workflow
+
+
 All notable changes to this project will be documented in this file.
 
 ## [1.0.0+1] - 2024-05-21
