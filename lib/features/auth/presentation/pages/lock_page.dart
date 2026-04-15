@@ -142,35 +142,53 @@ class _LockPageState extends ConsumerState<LockPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
-                if (showBiometric) ...[
-                  VaultButton(
-                    text: 'Use Biometric',
-                    onPressed: _unlockWithBiometric,
-                    isLoading: _isLoading,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                if (_failedAttempts >= 3 || !showBiometric) ...[
-                  VaultTextField(
-                    label: 'Master Password',
-                    hint: 'Enter your password',
-                    controller: _passwordController,
-                    obscureText: true,
-                    prefixIcon: const Icon(Icons.lock_outline),
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'Please enter your password';
-                      }
-                      return null;
-                    },
-                  ),
-                  const SizedBox(height: 32),
-                  VaultButton(
-                    text: 'Unlock',
-                    onPressed: _unlock,
-                    isLoading: _isLoading,
-                  ),
-                ],
+                VaultTextField(
+                  label: 'Master Password',
+                  hint: 'Enter your password',
+                  controller: _passwordController,
+                  obscureText: true,
+                  prefixIcon: const Icon(Icons.lock_outline),
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter your password';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 32),
+                Row(
+                  children: [
+                    Expanded(
+                      child: VaultButton(
+                        text: 'Unlock',
+                        onPressed: _unlock,
+                        isLoading: _isLoading,
+                      ),
+                    ),
+                    if (showBiometric) ...[
+                      const SizedBox(width: 16),
+                      Container(
+                        height: 56,
+                        width: 56,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.fingerprint,
+                            color: AppTheme.primaryColor,
+                            size: 28,
+                          ),
+                          onPressed: _unlockWithBiometric,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ],
             ),
           ),
