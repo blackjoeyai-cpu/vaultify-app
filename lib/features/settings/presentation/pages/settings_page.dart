@@ -22,6 +22,68 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
     });
   }
 
+  Future<void> _onBiometricToggle(bool value) async {
+    if (value) {
+      final biometricService = ref.read(biometricServiceProvider);
+      final isAvailable = await biometricService.isAvailable();
+
+      if (!isAvailable) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Biometric authentication is not available on this device',
+              ),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
+        final confirmed = await _showBiometricSetupDialog();
+        if (confirmed == true) {
+          ref.read(settingsProvider.notifier).setBiometricEnabled(true);
+          ref.read(authProvider.notifier).enableBiometric();
+        }
+      }
+    } else {
+      ref.read(settingsProvider.notifier).setBiometricEnabled(false);
+      ref.read(authProvider.notifier).disableBiometric();
+    }
+  }
+
+  Future<bool?> _showBiometricSetupDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        title: const Text('Setup Biometric'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'You will be able to unlock the app using your biometric credential (fingerprint or face) instead of entering your master password.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(true);
+            },
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final settings = ref.watch(settingsProvider);
@@ -58,8 +120,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: 'Use fingerprint to unlock',
             trailing: Switch(
               value: settings.biometricEnabled,
+              onChanged: _onBiometricToggle,
+            ),
+          ),
+          _buildSettingsTile(
+            icon: Icons.content_paste_off,
+            title: 'Auto-clear clipboard',
+            subtitle: 'Clear clipboard 30 seconds after copying',
+            trailing: Switch(
+              value: settings.clipboardAutoClearEnabled,
               onChanged: (value) {
-                ref.read(settingsProvider.notifier).setBiometricEnabled(value);
+                ref
+                    .read(settingsProvider.notifier)
+                    .setClipboardAutoClearEnabled(value);
               },
             ),
           ),
@@ -193,10 +266,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              final goRouter = GoRouter.of(context);
               Navigator.of(context).pop();
-              ref.read(authProvider.notifier).logout();
-              context.go(AppRouter.login);
+              await ref.read(authProvider.notifier).logout();
+              if (mounted) {
+                goRouter.go(AppRouter.login);
+              }
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('Delete'),

@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../../core/utils/password_strength.dart';
 
 class PasswordGeneratorState {
   final String password;
@@ -58,32 +59,15 @@ class PasswordGeneratorNotifier extends StateNotifier<PasswordGeneratorState> {
     if (state.includeNumbers) chars += numbers;
     if (state.includeSymbols) chars += symbols;
 
-    if (chars.isEmpty) {
-      chars = lowercase + numbers;
-    }
-
     final random = Random.secure();
     final password = List.generate(
       state.length,
       (_) => chars[random.nextInt(chars.length)],
     ).join();
 
-    final strength = _calculateStrength(password);
+    final strength = PasswordStrengthUtil.calculate(password);
 
     state = state.copyWith(password: password, strength: strength);
-  }
-
-  int _calculateStrength(String password) {
-    int strength = 0;
-    if (password.length >= 8) strength++;
-    if (password.length >= 12) strength++;
-    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
-    if (RegExp(r'[a-z]').hasMatch(password)) strength++;
-    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
-    if (RegExp(r'[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]').hasMatch(password)) {
-      strength++;
-    }
-    return strength;
   }
 
   void setLength(int length) {
@@ -92,23 +76,40 @@ class PasswordGeneratorNotifier extends StateNotifier<PasswordGeneratorState> {
   }
 
   void toggleUppercase() {
+    final enabledCount = _enabledOptionsCount();
+    if (state.includeUppercase && enabledCount <= 1) return;
     state = state.copyWith(includeUppercase: !state.includeUppercase);
     generatePassword();
   }
 
   void toggleLowercase() {
+    final enabledCount = _enabledOptionsCount();
+    if (state.includeLowercase && enabledCount <= 1) return;
     state = state.copyWith(includeLowercase: !state.includeLowercase);
     generatePassword();
   }
 
   void toggleNumbers() {
+    final enabledCount = _enabledOptionsCount();
+    if (state.includeNumbers && enabledCount <= 1) return;
     state = state.copyWith(includeNumbers: !state.includeNumbers);
     generatePassword();
   }
 
   void toggleSymbols() {
+    final enabledCount = _enabledOptionsCount();
+    if (state.includeSymbols && enabledCount <= 1) return;
     state = state.copyWith(includeSymbols: !state.includeSymbols);
     generatePassword();
+  }
+
+  int _enabledOptionsCount() {
+    int count = 0;
+    if (state.includeUppercase) count++;
+    if (state.includeLowercase) count++;
+    if (state.includeNumbers) count++;
+    if (state.includeSymbols) count++;
+    return count;
   }
 }
 

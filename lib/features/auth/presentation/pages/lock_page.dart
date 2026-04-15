@@ -18,6 +18,7 @@ class _LockPageState extends ConsumerState<LockPage> {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  int _failedAttempts = 0;
 
   @override
   void dispose() {
@@ -38,9 +39,11 @@ class _LockPageState extends ConsumerState<LockPage> {
 
     setState(() {
       _isLoading = false;
+      if (!success) _failedAttempts++;
     });
 
     if (success && mounted) {
+      _failedAttempts = 0;
       context.go(AppRouter.vault);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,8 +55,37 @@ class _LockPageState extends ConsumerState<LockPage> {
     }
   }
 
+  Future<void> _unlockWithBiometric() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final success = await ref.read(authProvider.notifier).loginWithBiometric();
+
+    setState(() {
+      _isLoading = false;
+      if (!success) _failedAttempts++;
+    });
+
+    if (success && mounted) {
+      _failedAttempts = 0;
+      context.go(AppRouter.vault);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Biometric authentication failed'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final showBiometric =
+        authState.hasBiometricCredential && _failedAttempts < 3;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
@@ -95,25 +127,35 @@ class _LockPageState extends ConsumerState<LockPage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 48),
-                VaultTextField(
-                  label: 'Master Password',
-                  hint: 'Enter your password',
-                  controller: _passwordController,
-                  obscureText: true,
-                  prefixIcon: const Icon(Icons.lock_outline),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter your password';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 32),
-                VaultButton(
-                  text: 'Unlock',
-                  onPressed: _unlock,
-                  isLoading: _isLoading,
-                ),
+                if (showBiometric) ...[
+                  VaultButton(
+                    text: 'Use Biometric',
+                    onPressed: _unlockWithBiometric,
+                    isLoading: _isLoading,
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                if (_failedAttempts >= 3 || !showBiometric) ...[
+                  VaultTextField(
+                    label: 'Master Password',
+                    hint: 'Enter your password',
+                    controller: _passwordController,
+                    obscureText: true,
+                    prefixIcon: const Icon(Icons.lock_outline),
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'Please enter your password';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 32),
+                  VaultButton(
+                    text: 'Unlock',
+                    onPressed: _unlock,
+                    isLoading: _isLoading,
+                  ),
+                ],
               ],
             ),
           ),

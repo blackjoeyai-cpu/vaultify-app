@@ -48,4 +48,20 @@ class SettingsRepositoryImpl implements SettingsRepository {
       value: enabled.toString(),
     );
   }
+
+  @override
+  Future<bool> isClipboardAutoClearEnabled() async {
+    final value = await _secureStorage.read(
+      key: StorageKeys.clipboardAutoClearEnabled,
+    );
+    return value == 'true';
+  }
+
+  @override
+  Future<void> setClipboardAutoClearEnabled(bool enabled) async {
+    await _secureStorage.write(
+      key: StorageKeys.clipboardAutoClearEnabled,
+      value: enabled.toString(),
+    );
+  }
 }

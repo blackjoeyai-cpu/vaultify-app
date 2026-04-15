@@ -3,7 +3,7 @@
   "description": "A secure, offline-first Flutter password vault",
   "version": "1.0.0",
   "createdAt": "2026-04-10T00:00:00Z",
-  "updatedAt": "2026-04-10T00:00:00Z",
+  "updatedAt": "2026-04-14T00:00:00Z",
   "architecture": {
     "pattern": "Clean Architecture (4 layers)",
     "stateManagement": "Riverpod",
@@ -16,6 +16,11 @@
     "saltLength": 32,
     "ivLength": 12
   },
+  "testing": {
+    "framework": "flutter_test",
+    "coverage": ["auth", "vault", "encryption", "password_generator"],
+    "ci": "GitHub Actions"
+  },
   "currentStage": "Development",
-  "lastActivity": "Project structure review completed"
+  "lastActivity": "Added unit tests and GitHub Actions CI/CD pipeline"
 }

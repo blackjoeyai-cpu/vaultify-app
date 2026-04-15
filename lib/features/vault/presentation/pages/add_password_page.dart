@@ -5,10 +5,16 @@ import '../../../../core/theme/app_theme.dart';
 import '../../application/providers/vault_provider.dart';
 import '../../domain/entities/password_entry.dart';
 import '../widgets/password_strength_indicator.dart';
+import '../widgets/password_generator_sheet.dart';
 import '../../../../core/utils/extensions.dart';
 
 class AddPasswordPage extends ConsumerStatefulWidget {
-  const AddPasswordPage({super.key});
+  final PasswordEntry? existingEntry;
+  final String? editId;
+
+  const AddPasswordPage({super.key, this.existingEntry, this.editId});
+
+  bool get isEditMode => existingEntry != null || editId != null;
 
   @override
   ConsumerState<AddPasswordPage> createState() => _AddPasswordPageState();
@@ -24,6 +30,7 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
   PasswordCategory _selectedCategory = PasswordCategory.others;
   int _passwordStrength = 0;
   bool _isLoading = false;
+  bool _initialized = false;
 
   @override
   void initState() {
@@ -37,53 +44,39 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
     });
   }
 
-  @override
-  void dispose() {
-    _passwordController.removeListener(_updatePasswordStrength);
-    _titleController.dispose();
-    _usernameController.dispose();
-    _passwordController.dispose();
-    _urlController.dispose();
-    _notesController.dispose();
-    super.dispose();
-  }
-
-  Future<void> _savePassword() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    final now = DateTime.now();
-    final entry = PasswordEntry(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      title: _titleController.text,
-      username: _usernameController.text,
-      password: _passwordController.text,
-      url: _urlController.text.isEmpty ? null : _urlController.text,
-      notes: _notesController.text.isEmpty ? null : _notesController.text,
-      category: _selectedCategory,
-      createdAt: now,
-      updatedAt: now,
-    );
-
-    await ref.read(vaultProvider.notifier).addPassword(entry);
-
-    setState(() {
-      _isLoading = false;
-    });
-
-    if (mounted) {
-      context.pop();
+  void _populateFromEntry(PasswordEntry entry) {
+    if (!_initialized) {
+      _titleController.text = entry.title;
+      _usernameController.text = entry.username;
+      _passwordController.text = entry.password;
+      _urlController.text = entry.url ?? '';
+      _notesController.text = entry.notes ?? '';
+      _selectedCategory = entry.category;
+      _initialized = true;
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isEditMode = widget.isEditMode;
+    PasswordEntry? entry;
+
+    if (isEditMode && widget.editId != null) {
+      final asyncEntry = ref.watch(selectedPasswordProvider(widget.editId!));
+      entry = asyncEntry.valueOrNull;
+    } else if (widget.existingEntry != null) {
+      entry = widget.existingEntry;
+    }
+
+    if (entry != null) {
+      _populateFromEntry(entry);
+    }
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
-      appBar: AppBar(title: const Text('Add Password')),
+      appBar: AppBar(
+        title: Text(widget.isEditMode ? 'Edit Password' : 'Add Password'),
+      ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -117,19 +110,7 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildTextField(
-                controller: _passwordController,
-                label: 'Password',
-                hint: 'Enter password',
-                icon: Icons.lock_outline,
-                obscureText: true,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter a password';
-                  }
-                  return null;
-                },
-              ),
+              _buildPasswordField(),
               const SizedBox(height: 8),
               PasswordStrengthIndicator(strength: _passwordStrength),
               const SizedBox(height: 16),
@@ -209,12 +190,127 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
                         height: 24,
                         child: CircularProgressIndicator(strokeWidth: 2),
                       )
-                    : const Text('Save Password'),
+                    : Text(
+                        widget.isEditMode ? 'Update Password' : 'Save Password',
+                      ),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _savePassword() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    final now = DateTime.now();
+
+    if (widget.isEditMode) {
+      PasswordEntry? original;
+      if (widget.existingEntry != null) {
+        original = widget.existingEntry;
+      } else if (widget.editId != null) {
+        final asyncEntry = ref.read(selectedPasswordProvider(widget.editId!));
+        original = asyncEntry.valueOrNull;
+      }
+
+      if (original == null) {
+        setState(() {
+          _isLoading = false;
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Error: Password not found')),
+          );
+        }
+        return;
+      }
+
+      final updated = original.copyWith(
+        title: _titleController.text,
+        username: _usernameController.text,
+        password: _passwordController.text,
+        url: _urlController.text.isEmpty ? null : _urlController.text,
+        notes: _notesController.text.isEmpty ? null : _notesController.text,
+        category: _selectedCategory,
+        updatedAt: now,
+      );
+      await ref.read(vaultProvider.notifier).updatePassword(updated);
+    } else {
+      final entry = PasswordEntry(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        title: _titleController.text,
+        username: _usernameController.text,
+        password: _passwordController.text,
+        url: _urlController.text.isEmpty ? null : _urlController.text,
+        notes: _notesController.text.isEmpty ? null : _notesController.text,
+        category: _selectedCategory,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await ref.read(vaultProvider.notifier).addPassword(entry);
+    }
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    if (mounted) {
+      context.pop();
+    }
+  }
+
+  void _showGenerator() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => ProviderScope(
+        child: PasswordGeneratorSheet(
+          onPasswordSelected: (password) {
+            _passwordController.text = password;
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPasswordField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Password',
+          style: Theme.of(
+            context,
+          ).textTheme.titleSmall?.copyWith(color: AppTheme.textSecondary),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _passwordController,
+          obscureText: true,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter a password';
+            }
+            return null;
+          },
+          decoration: InputDecoration(
+            hintText: 'Enter password',
+            prefixIcon: const Icon(Icons.lock_outline),
+            suffixIcon: IconButton(
+              icon: const Icon(Icons.auto_awesome),
+              onPressed: _showGenerator,
+              tooltip: 'Generate Password',
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -246,5 +342,16 @@ class _AddPasswordPageState extends ConsumerState<AddPasswordPage> {
         ),
       ],
     );
+  }
+
+  @override
+  void dispose() {
+    _passwordController.removeListener(_updatePasswordStrength);
+    _titleController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
+    _urlController.dispose();
+    _notesController.dispose();
+    super.dispose();
   }
 }

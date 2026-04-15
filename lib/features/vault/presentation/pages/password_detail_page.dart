@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/utils/extensions.dart';
+import '../../../../shared/services/secure_clipboard_service.dart';
+import '../../../settings/application/providers/settings_provider.dart';
 import '../../application/providers/vault_provider.dart';
 import '../../domain/entities/password_entry.dart';
 
@@ -41,9 +42,15 @@ class _PasswordDetailPageState extends ConsumerState<PasswordDetailPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.edit_outlined),
-            onPressed: () {
-              // TODO: Implement edit
-            },
+            onPressed: () => context.push('/vault/edit/${entry.id}'),
+          ),
+          IconButton(
+            icon: Icon(
+              entry.isFavorite ? Icons.star : Icons.star_border,
+              color: entry.isFavorite ? AppTheme.warningColor : null,
+            ),
+            onPressed: () =>
+                ref.read(vaultProvider.notifier).toggleFavorite(entry.id),
           ),
           IconButton(
             icon: const Icon(Icons.delete_outline),
@@ -203,11 +210,23 @@ class _PasswordDetailPageState extends ConsumerState<PasswordDetailPage> {
           ),
           IconButton(
             icon: const Icon(Icons.copy, color: AppTheme.textSecondary),
-            onPressed: () {
-              Clipboard.setData(ClipboardData(text: password));
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Password copied to clipboard')),
+            onPressed: () async {
+              final settings = ref.read(settingsProvider);
+              await SecureClipboardService.copyWithAutoClearSetting(
+                password,
+                settings.clipboardAutoClearEnabled,
               );
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      settings.clipboardAutoClearEnabled
+                          ? 'Password copied (auto-clears in 30s)'
+                          : 'Password copied',
+                    ),
+                  ),
+                );
+              }
             },
           ),
         ],
