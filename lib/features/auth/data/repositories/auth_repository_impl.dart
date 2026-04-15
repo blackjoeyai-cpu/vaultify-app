@@ -42,13 +42,18 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<void> saveSession(DateTime expiry) async {
+  Future<void> saveSession(DateTime expiry, {String? masterPassword}) async {
     final token = _uuid.v4();
-    await _localDatasource.saveSession(token, expiry);
+    await _localDatasource.saveSession(
+      token,
+      expiry,
+      masterPassword: masterPassword,
+    );
   }
 
   @override
-  Future<({String token, DateTime expiry})?> getSession() async {
+  Future<({String token, DateTime expiry, String? masterPassword})?>
+  getSession() async {
     return await _localDatasource.getSession();
   }
 

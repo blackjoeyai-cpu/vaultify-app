@@ -4,57 +4,33 @@ A secure, offline-first Flutter password vault built with Clean Architecture.
 
 ---
 
-## 📊 Development Progress
+## Features
 
-### ✅ Completed Features
+### Authentication
+- Master password login and registration
+- Biometric authentication support
+- Session persistence across app restarts
+- Auto-lock on app background
 
-#### Infrastructure
-- [x] Clean architecture (4 layers)
-- [x] Riverpod state management
-- [x] GoRouter navigation
-- [x] Hive local storage
-- [x] Flutter Secure Storage integration
-- [x] Unit tests (auth, vault, encryption, password generator)
-- [x] GitHub Actions CI/CD pipeline
+### Password Vault
+- Add, view, edit, and delete passwords
+- Category filtering (Social, Financial, Work, Others)
+- Search functionality
+- Favorite toggle
+- Built-in password generator
+- Password strength indicator
 
-#### Authentication
-- [x] Login page
-- [x] Register page
-- [x] Lock page
+### Security
+- AES-256-GCM encryption
+- PBKDF2 key derivation (100,000 iterations)
+- Secure clipboard with auto-clear
+- Encrypted Hive storage
+- Route guards for auth protection
 
-#### Onboarding
-- [x] Onboarding slides (3 pages)
-- [x] Welcome page
-
-#### Password Vault
-- [x] Vault list page with search
-- [x] Category filtering (Social, Financial, Work, Others)
-- [x] Add password page
-- [x] Password detail page
-- [x] Delete password flow
-- [x] Password generator UI integration
-- [x] Favorite toggle
-
-#### Settings
-- [x] Settings page UI
-- [x] Auto-lock toggle UI
-- [x] Auto-lock toggle implementation
-- [x] Clipboard auto-clear setting
-
-#### Security
-- [x] Encryption service (AES-256-GCM with PBKDF2)
-- [x] Secure clipboard service
-- [x] Session persistence across app restarts
-- [x] Auto-lock on app background
-- [x] Biometric authentication
-- [x] Route guards (auth protection)
-- [x] Edit password flow
-
----
-
-### ⏳ In Progress
-
-- [ ] Password encryption in Hive storage
+### Settings
+- Auto-lock timer configuration
+- Biometric toggle
+- Clipboard auto-clear setting
 
 ---
 
@@ -117,6 +93,12 @@ flutter pub get
 
 # Run the app
 flutter run
+
+# Run tests
+flutter test
+
+# Analyze code
+flutter analyze
 ```
 
 ---
