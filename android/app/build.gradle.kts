@@ -20,7 +20,7 @@ android {
 
     defaultConfig {
         applicationId = "com.vaultify.vaultify"
-        minSdk = 32
+        minSdk = 27
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
