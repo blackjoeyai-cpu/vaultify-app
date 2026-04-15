@@ -44,13 +44,47 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       if (mounted) {
         final confirmed = await _showBiometricSetupDialog();
         if (confirmed == true) {
-          ref.read(settingsProvider.notifier).setBiometricEnabled(true);
-          ref.read(authProvider.notifier).enableBiometric();
+          // Test biometric authentication first
+          final authenticated = await biometricService.authenticate(
+            reason:
+                'Verify your identity to enable biometric unlock for Vaultify',
+          );
+
+          if (!authenticated && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Biometric authentication failed. Try again.'),
+                backgroundColor: AppTheme.errorColor,
+              ),
+            );
+            return;
+          }
+
+          if (mounted) {
+            // Enable biometric after successful authentication
+            ref.read(settingsProvider.notifier).setBiometricEnabled(true);
+            ref.read(authProvider.notifier).enableBiometric();
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Biometric unlock enabled successfully'),
+                backgroundColor: AppTheme.primaryColor,
+              ),
+            );
+          }
         }
       }
     } else {
       ref.read(settingsProvider.notifier).setBiometricEnabled(false);
       ref.read(authProvider.notifier).disableBiometric();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Biometric unlock disabled'),
+          ),
+        );
+      }
     }
   }
 

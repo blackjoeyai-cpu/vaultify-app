@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/datasources/auth_local_datasource.dart';
@@ -255,8 +256,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> enableBiometric() async {
-    await _authRepository.enableBiometric();
-    state = state.copyWith(hasBiometricCredential: true);
+    try {
+      await _authRepository.enableBiometric();
+
+      // Save current session with master password if available
+      // This ensures biometric unlock can retrieve the master password later
+      final sessionProvider_ = _ref.read(sessionProvider);
+      final masterPassword = sessionProvider_.masterPassword;
+      if (masterPassword != null && masterPassword.isNotEmpty) {
+        final settings = _ref.read(settingsProvider);
+        final expiry = DateTime.now().add(
+          Duration(minutes: settings.autoLockDuration),
+        );
+        await _authRepository.saveSession(
+          expiry,
+          masterPassword: masterPassword,
+        );
+      }
+
+      state = state.copyWith(hasBiometricCredential: true);
+    } catch (e) {
+      debugPrint('Error enabling biometric: $e');
+      state = state.copyWith(error: 'Failed to enable biometric: $e');
+    }
   }
 
   Future<void> disableBiometric() async {
