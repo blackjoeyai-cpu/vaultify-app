@@ -28,7 +28,7 @@ jobs:
         id: bump_type
         run: |
           # Try to find the PR associated with this commit to check labels
-          PR_NUMBER=$(gh pr list --commit ${{ github.sha }} --state merged --json number --jq '.[0].number')
+          PR_NUMBER=$(gh pr list --search "${{ github.sha }}" --state merged --json number --jq '.[0].number')
           if [ -n "$PR_NUMBER" ]; then
             LABELS=$(gh pr view $PR_NUMBER --json labels --jq '.labels[].name')
             if echo "$LABELS" | grep -iq "major"; then
