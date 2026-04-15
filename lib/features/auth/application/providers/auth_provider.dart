@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/datasources/auth_local_datasource.dart';
@@ -275,7 +276,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = state.copyWith(hasBiometricCredential: true);
     } catch (e) {
-      print('Error enabling biometric: $e');
+      debugPrint('Error enabling biometric: $e');
       state = state.copyWith(error: 'Failed to enable biometric: $e');
     }
   }

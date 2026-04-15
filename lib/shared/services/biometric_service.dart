@@ -1,5 +1,6 @@
 import 'package:local_auth/local_auth.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
 
 class BiometricService {
@@ -19,10 +20,10 @@ class BiometricService {
       
       return canCheckBiometrics || isDeviceSupported;
     } on PlatformException catch (e) {
-      print('Biometric availability check failed: ${e.message}');
+      debugPrint('Biometric availability check failed: ${e.message}');
       return false;
     } catch (e) {
-      print('Unexpected error checking biometric availability: $e');
+      debugPrint('Unexpected error checking biometric availability: $e');
       return false;
     }
   }
@@ -30,13 +31,13 @@ class BiometricService {
   Future<List<BiometricType>> getAvailableBiometrics() async {
     try {
       final biometrics = await _localAuth.getAvailableBiometrics();
-      print('Available biometrics: $biometrics');
+      debugPrint('Available biometrics: $biometrics');
       return biometrics;
     } on PlatformException catch (e) {
-      print('Failed to get biometrics: ${e.message}');
+      debugPrint('Failed to get biometrics: ${e.message}');
       return [];
     } catch (e) {
-      print('Unexpected error getting biometrics: $e');
+      debugPrint('Unexpected error getting biometrics: $e');
       return [];
     }
   }
@@ -45,11 +46,11 @@ class BiometricService {
     String reason = 'Authenticate to unlock Vaultify',
   }) async {
     try {
-      print('Starting biometric authentication with reason: $reason');
+      debugPrint('Starting biometric authentication with reason: $reason');
       
       // First check if biometric is available
       if (!await isAvailable()) {
-        print('Biometric not available on device');
+        debugPrint('Biometric not available on device');
         return false;
       }
 
@@ -62,13 +63,13 @@ class BiometricService {
         ),
       );
       
-      print('Biometric authentication result: $result');
+      debugPrint('Biometric authentication result: $result');
       return result;
     } on PlatformException catch (e) {
-      print('Biometric authentication failed: ${e.code} - ${e.message}');
+      debugPrint('Biometric authentication failed: ${e.code} - ${e.message}');
       return false;
     } catch (e) {
-      print('Unexpected error during biometric authentication: $e');
+      debugPrint('Unexpected error during biometric authentication: $e');
       return false;
     }
   }
