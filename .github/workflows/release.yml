@@ -24,6 +24,11 @@ jobs:
           token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.41.2'
+          cache: true
+
       - name: Get bump type
         id: bump_type
         run: |
