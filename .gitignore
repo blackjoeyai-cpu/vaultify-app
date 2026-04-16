@@ -46,3 +46,11 @@ app.*.map.json
 
 # Test
 /test/
+
+# Keystore files - NEVER commit these
+*.jks
+*.keystore
+key.properties
+
+# CI/CD secrets (base64 encoded keystore)
+keystore_base64.txt
