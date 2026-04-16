@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.4+5] - 2026-04-16
+
+- Merge pull request #24 from blackjoeyai-cpu/dev
+
+Merge dev into main
+
+
 ## [1.0.3+4] - 2026-04-15
 
 - Merge pull request #22 from blackjoeyai-cpu/dev
