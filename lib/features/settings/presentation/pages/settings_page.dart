@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/router/app_router.dart';
 import '../../application/providers/settings_provider.dart';
@@ -14,12 +15,24 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  String _appVersion = '';
+
   @override
   void initState() {
     super.initState();
+    _initPackageInfo();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(settingsProvider.notifier).loadSettings();
     });
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = info.version;
+      });
+    }
   }
 
   Future<void> _onBiometricToggle(bool value) async {
@@ -80,9 +93,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Biometric unlock disabled'),
-          ),
+          const SnackBar(content: Text('Biometric unlock disabled')),
         );
       }
     }
@@ -175,7 +186,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _buildSettingsTile(
             icon: Icons.info_outline,
             title: 'Version',
-            subtitle: '1.0.0',
+            subtitle: _appVersion.isEmpty ? '...' : _appVersion,
           ),
           _buildSettingsTile(
             icon: Icons.shield_outlined,
