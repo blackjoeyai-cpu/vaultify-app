@@ -32,19 +32,7 @@ class _VaultifyAppState extends ConsumerState<VaultifyApp>
       if (isUnauthenticated && wasAuthenticated) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!mounted) return;
-          final currentPath = GoRouterState.of(context).matchedLocation;
-          final protectedPaths = [
-            AppRouter.vault,
-            AppRouter.settings,
-            AppRouter.addPassword,
-          ];
-          final isOnProtectedPage = protectedPaths.any(
-            (path) => currentPath.startsWith(path),
-          );
-
-          if (isOnProtectedPage) {
-            context.go(AppRouter.lock);
-          }
+          context.go(AppRouter.lock);
         });
       }
     };
