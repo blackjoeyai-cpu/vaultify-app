@@ -69,6 +69,21 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Decode Keystore for Release Signing
+        run: |
+          echo "${{ secrets.KEYSTORE_FILE }}" | base64 -d > android/app/release-keystore.jks
+        shell: bash
+
+      - name: Create key.properties for CI
+        run: |
+          cat > android/key.properties << EOF
+          storePassword=${{ secrets.KEYSTORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          storeFile=release-keystore.jks
+          EOF
+        shell: bash
+
       - name: Run tests
         run: flutter test --reporter compact
         env:
