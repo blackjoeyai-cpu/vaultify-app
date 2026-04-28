@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../../features/vault/data/datasources/vault_local_datasource.dart';
@@ -16,6 +17,7 @@ final encryptionServiceProvider = Provider<EncryptionService>((ref) {
 
 VaultLocalDatasource? _datasourceInstance;
 String? Function()? _getMasterPasswordCallback;
+Uint8List? Function()? _getDerivedKeyCallback;
 
 Future<void> initializeVaultDatasource() async {
   final encryptionService = EncryptionService(
@@ -26,6 +28,7 @@ Future<void> initializeVaultDatasource() async {
   _datasourceInstance = VaultLocalDatasource(
     encryptionService,
     () => _getMasterPasswordCallback?.call(),
+    () => _getDerivedKeyCallback?.call(),
   );
   await _datasourceInstance!.init();
 }
@@ -39,6 +42,10 @@ final vaultLocalDatasourceProvider = Provider<VaultLocalDatasource>((ref) {
   return _datasourceInstance!;
 });
 
-void setMasterPasswordCallback(String? Function() callback) {
-  _getMasterPasswordCallback = callback;
+void setMasterPasswordCallback(
+  String? Function() masterPasswordCallback, {
+  Uint8List? Function()? derivedKeyCallback,
+}) {
+  _getMasterPasswordCallback = masterPasswordCallback;
+  _getDerivedKeyCallback = derivedKeyCallback;
 }
