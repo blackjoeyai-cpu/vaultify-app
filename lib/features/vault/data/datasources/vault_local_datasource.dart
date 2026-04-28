@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:hive/hive.dart';
 import '../../domain/entities/password_entry.dart';
 import '../../../../core/constants/storage_keys.dart';
@@ -6,9 +7,14 @@ import '../../../../shared/services/encryption_service.dart';
 class VaultLocalDatasource {
   final EncryptionService _encryptionService;
   final String? Function() _getMasterPassword;
+  final Uint8List? Function() _getDerivedKey;
   Box<String>? _passwordBox;
 
-  VaultLocalDatasource(this._encryptionService, this._getMasterPassword);
+  VaultLocalDatasource(
+    this._encryptionService,
+    this._getMasterPassword,
+    this._getDerivedKey,
+  );
 
   Future<void> init([Box<String>? passwordBox]) async {
     _passwordBox =
@@ -25,9 +31,11 @@ class VaultLocalDatasource {
   }
 
   String? get _masterPassword => _getMasterPassword();
+  Uint8List? get _derivedKey => _getDerivedKey();
 
   Future<List<PasswordEntry>> getAllPasswords() async {
     final masterPassword = _masterPassword;
+    final derivedKey = _derivedKey;
     if (masterPassword == null) {
       throw StateError('Session not unlocked. Master password required.');
     }
@@ -37,7 +45,11 @@ class VaultLocalDatasource {
       final encrypted = _box.get(key);
       if (encrypted != null) {
         entries.add(
-          await _passwordEntryFromEncrypted(encrypted, masterPassword),
+          await _passwordEntryFromEncrypted(
+            encrypted,
+            masterPassword,
+            key: derivedKey,
+          ),
         );
       }
     }
@@ -46,22 +58,32 @@ class VaultLocalDatasource {
 
   Future<PasswordEntry?> getPasswordById(String id) async {
     final masterPassword = _masterPassword;
+    final derivedKey = _derivedKey;
     if (masterPassword == null) {
       throw StateError('Session not unlocked. Master password required.');
     }
 
     final encrypted = _box.get(id);
     if (encrypted == null) return null;
-    return _passwordEntryFromEncrypted(encrypted, masterPassword);
+    return _passwordEntryFromEncrypted(
+      encrypted,
+      masterPassword,
+      key: derivedKey,
+    );
   }
 
   Future<void> savePassword(PasswordEntry entry) async {
     final masterPassword = _masterPassword;
+    final derivedKey = _derivedKey;
     if (masterPassword == null) {
       throw StateError('Session not unlocked. Master password required.');
     }
 
-    final encrypted = await _passwordEntryToEncrypted(entry, masterPassword);
+    final encrypted = await _passwordEntryToEncrypted(
+      entry,
+      masterPassword,
+      key: derivedKey,
+    );
     await _box.put(entry.id, encrypted);
   }
 
@@ -71,9 +93,14 @@ class VaultLocalDatasource {
 
   Future<PasswordEntry> _passwordEntryFromEncrypted(
     String encrypted,
-    String masterPassword,
-  ) async {
-    final map = await _encryptionService.decryptMap(encrypted, masterPassword);
+    String masterPassword, {
+    Uint8List? key,
+  }) async {
+    final map = await _encryptionService.decryptMap(
+      encrypted,
+      masterPassword,
+      key: key,
+    );
     return PasswordEntry(
       id: map['id'] as String,
       title: map['title'] as String,
@@ -90,8 +117,9 @@ class VaultLocalDatasource {
 
   Future<String> _passwordEntryToEncrypted(
     PasswordEntry entry,
-    String masterPassword,
-  ) async {
+    String masterPassword, {
+    Uint8List? key,
+  }) async {
     final data = {
       'id': entry.id,
       'title': entry.title,
@@ -104,6 +132,10 @@ class VaultLocalDatasource {
       'updatedAt': entry.updatedAt.toIso8601String(),
       'isFavorite': entry.isFavorite,
     };
-    return await _encryptionService.encryptMap(data, masterPassword);
+    return await _encryptionService.encryptMap(
+      data,
+      masterPassword,
+      key: key,
+    );
   }
 }
