@@ -9,11 +9,17 @@ import 'package:vaultify/shared/services/session_provider.dart';
 import '../mocks/mock_hive_box.dart';
 import '../mocks/mock_secure_storage.dart';
 
+import 'dart:typed_data';
+
 class MockEncryptionService extends EncryptionService {
   MockEncryptionService() : super(MockSecureStorage());
 
   @override
-  Future<String> encryptMap(Map<String, dynamic> data, String password) async {
+  Future<String> encryptMap(
+    Map<String, dynamic> data,
+    String password, {
+    Uint8List? key,
+  }) async {
     final jsonString = jsonEncode(data);
     return base64Encode(utf8.encode(jsonString));
   }
@@ -21,8 +27,9 @@ class MockEncryptionService extends EncryptionService {
   @override
   Future<Map<String, dynamic>> decryptMap(
     String encryptedData,
-    String password,
-  ) async {
+    String password, {
+    Uint8List? key,
+  }) async {
     final decoded = utf8.decode(base64Decode(encryptedData));
     return jsonDecode(decoded) as Map<String, dynamic>;
   }
@@ -41,6 +48,7 @@ void main() {
     vaultLocalDatasource = VaultLocalDatasource(
       mockEncryption,
       () => sessionNotifier.getMasterPassword(),
+      () => sessionNotifier.getDerivedKey(),
     );
     vaultLocalDatasource.init(mockBox);
     vaultRepository = VaultRepositoryImpl(vaultLocalDatasource);

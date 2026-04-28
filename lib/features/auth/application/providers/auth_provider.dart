@@ -128,9 +128,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading);
     try {
       await _authRepository.createMasterPassword(password);
-      _ref.read(sessionProvider.notifier).unlock(password);
+      final encryptionService = _ref.read(encryptionServiceProvider);
+      final derivedKey = await encryptionService.deriveKey(password);
+      _ref.read(sessionProvider.notifier).unlock(password, derivedKey: derivedKey);
       setMasterPasswordCallback(
         () => _ref.read(sessionProvider).masterPassword,
+        derivedKeyCallback: () => _ref.read(sessionProvider).derivedKey,
       );
       state = state.copyWith(
         hasMasterPassword: true,
@@ -151,9 +154,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       final isValid = await _authRepository.verifyMasterPassword(password);
       if (isValid) {
-        _ref.read(sessionProvider.notifier).unlock(password);
+        final encryptionService = _ref.read(encryptionServiceProvider);
+        final derivedKey = await encryptionService.deriveKey(password);
+        _ref.read(sessionProvider.notifier).unlock(password, derivedKey: derivedKey);
         setMasterPasswordCallback(
           () => _ref.read(sessionProvider).masterPassword,
+          derivedKeyCallback: () => _ref.read(sessionProvider).derivedKey,
         );
         if (saveSession) {
           final settings = _ref.read(settingsProvider);
@@ -216,9 +222,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       final session = await _authRepository.getSession();
       if (session != null && session.masterPassword != null) {
-        _ref.read(sessionProvider.notifier).unlock(session.masterPassword!);
+        final encryptionService = _ref.read(encryptionServiceProvider);
+        final derivedKey = await encryptionService.deriveKey(session.masterPassword!);
+        _ref.read(sessionProvider.notifier).unlock(
+          session.masterPassword!,
+          derivedKey: derivedKey,
+        );
         setMasterPasswordCallback(
           () => _ref.read(sessionProvider).masterPassword,
+          derivedKeyCallback: () => _ref.read(sessionProvider).derivedKey,
         );
       }
 
