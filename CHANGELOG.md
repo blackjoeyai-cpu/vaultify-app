@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.0.2+3] - 2026-04-28
+
+- Merge branch 'dev'
+
+
 ## [1.0.1+2] - 2026-04-28
 
 - Merge pull request #31 from blackjoeyai-cpu/dev
