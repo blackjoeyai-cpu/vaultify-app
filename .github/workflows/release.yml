@@ -98,6 +98,11 @@ jobs:
       - name: Create and push tag
         run: |
           TAG="v${{ steps.version.outputs.name }}"
+          # Check if tag already exists, delete if so (handles re-runs)
+          if git ls-remote --tags origin $TAG 2>/dev/null | grep -q "."; then
+            git push origin :refs/tags/$TAG
+            git tag -d $TAG
+          fi
           git tag $TAG
           git push origin $TAG
         env:
