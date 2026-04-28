@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../../../../core/theme/app_theme.dart';
 import '../../../../core/router/app_router.dart';
 import '../../application/providers/settings_provider.dart';
@@ -14,12 +15,118 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
+  String _appVersion = '';
+
   @override
   void initState() {
     super.initState();
+    _initPackageInfo();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(settingsProvider.notifier).loadSettings();
     });
+  }
+
+  Future<void> _initPackageInfo() async {
+    final info = await PackageInfo.fromPlatform();
+    if (mounted) {
+      setState(() {
+        _appVersion = info.version;
+      });
+    }
+  }
+
+  Future<void> _onBiometricToggle(bool value) async {
+    if (value) {
+      final biometricService = ref.read(biometricServiceProvider);
+      final isAvailable = await biometricService.isAvailable();
+
+      if (!isAvailable) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Biometric authentication is not available on this device',
+              ),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        }
+        return;
+      }
+
+      if (mounted) {
+        final confirmed = await _showBiometricSetupDialog();
+        if (confirmed == true) {
+          // Test biometric authentication first
+          final authenticated = await biometricService.authenticate(
+            reason:
+                'Verify your identity to enable biometric unlock for Vaultify',
+          );
+
+          if (!authenticated && mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Biometric authentication failed. Try again.'),
+                backgroundColor: AppTheme.errorColor,
+              ),
+            );
+            return;
+          }
+
+          if (mounted) {
+            // Enable biometric after successful authentication
+            ref.read(settingsProvider.notifier).setBiometricEnabled(true);
+            ref.read(authProvider.notifier).enableBiometric();
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Biometric unlock enabled successfully'),
+                backgroundColor: AppTheme.primaryColor,
+              ),
+            );
+          }
+        }
+      }
+    } else {
+      ref.read(settingsProvider.notifier).setBiometricEnabled(false);
+      ref.read(authProvider.notifier).disableBiometric();
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Biometric unlock disabled')),
+        );
+      }
+    }
+  }
+
+  Future<bool?> _showBiometricSetupDialog() async {
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.surfaceColor,
+        title: const Text('Setup Biometric'),
+        content: const Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'You will be able to unlock the app using your biometric credential (fingerprint or face) instead of entering your master password.',
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(true);
+            },
+            child: const Text('Enable'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -58,8 +165,19 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             subtitle: 'Use fingerprint to unlock',
             trailing: Switch(
               value: settings.biometricEnabled,
+              onChanged: _onBiometricToggle,
+            ),
+          ),
+          _buildSettingsTile(
+            icon: Icons.content_paste_off,
+            title: 'Auto-clear clipboard',
+            subtitle: 'Clear clipboard 30 seconds after copying',
+            trailing: Switch(
+              value: settings.clipboardAutoClearEnabled,
               onChanged: (value) {
-                ref.read(settingsProvider.notifier).setBiometricEnabled(value);
+                ref
+                    .read(settingsProvider.notifier)
+                    .setClipboardAutoClearEnabled(value);
               },
             ),
           ),
@@ -68,7 +186,7 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           _buildSettingsTile(
             icon: Icons.info_outline,
             title: 'Version',
-            subtitle: '1.0.0',
+            subtitle: _appVersion.isEmpty ? '...' : _appVersion,
           ),
           _buildSettingsTile(
             icon: Icons.shield_outlined,
@@ -193,10 +311,13 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
+              final goRouter = GoRouter.of(context);
               Navigator.of(context).pop();
-              ref.read(authProvider.notifier).logout();
-              context.go(AppRouter.login);
+              await ref.read(authProvider.notifier).logout();
+              if (mounted) {
+                goRouter.go(AppRouter.login);
+              }
             },
             style: TextButton.styleFrom(foregroundColor: AppTheme.errorColor),
             child: const Text('Delete'),

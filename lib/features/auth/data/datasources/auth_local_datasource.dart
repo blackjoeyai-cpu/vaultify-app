@@ -44,6 +44,64 @@ class AuthLocalDatasource {
     );
   }
 
+  Future<void> saveSession(
+    String token,
+    DateTime expiry, {
+    String? masterPassword,
+  }) async {
+    await _secureStorage.write(key: StorageKeys.sessionToken, value: token);
+    await _secureStorage.write(
+      key: StorageKeys.sessionExpiry,
+      value: expiry.millisecondsSinceEpoch.toString(),
+    );
+    if (masterPassword != null) {
+      await _secureStorage.write(
+        key: StorageKeys.sessionMasterPassword,
+        value: masterPassword,
+      );
+    }
+  }
+
+  Future<({String token, DateTime expiry, String? masterPassword})?>
+  getSession() async {
+    final token = await _secureStorage.read(key: StorageKeys.sessionToken);
+    final expiryStr = await _secureStorage.read(key: StorageKeys.sessionExpiry);
+    final masterPassword = await _secureStorage.read(
+      key: StorageKeys.sessionMasterPassword,
+    );
+    if (token == null || expiryStr == null) return null;
+
+    final expiryMs = int.tryParse(expiryStr);
+    if (expiryMs == null) {
+      await clearSession();
+      return null;
+    }
+
+    return (
+      token: token,
+      expiry: DateTime.fromMillisecondsSinceEpoch(expiryMs),
+      masterPassword: masterPassword,
+    );
+  }
+
+  Future<void> clearSession() async {
+    await _secureStorage.delete(key: StorageKeys.sessionToken);
+    await _secureStorage.delete(key: StorageKeys.sessionExpiry);
+    await _secureStorage.delete(key: StorageKeys.sessionMasterPassword);
+  }
+
+  Future<void> setBiometricEnabled(bool enabled) async {
+    await _secureStorage.write(
+      key: StorageKeys.biometricEnabled,
+      value: enabled.toString(),
+    );
+  }
+
+  Future<bool> isBiometricEnabled() async {
+    final value = await _secureStorage.read(key: StorageKeys.biometricEnabled);
+    return value == 'true';
+  }
+
   Future<void> clearAll() async {
     await _secureStorage.deleteAll();
   }

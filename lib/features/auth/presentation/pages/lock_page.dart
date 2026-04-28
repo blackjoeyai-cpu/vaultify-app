@@ -18,6 +18,22 @@ class _LockPageState extends ConsumerState<LockPage> {
   final _formKey = GlobalKey<FormState>();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  int _failedAttempts = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkBiometricOnStart();
+    });
+  }
+
+  Future<void> _checkBiometricOnStart() async {
+    final authState = ref.read(authProvider);
+    if (authState.hasBiometricCredential) {
+      await _unlockWithBiometric();
+    }
+  }
 
   @override
   void dispose() {
@@ -38,9 +54,11 @@ class _LockPageState extends ConsumerState<LockPage> {
 
     setState(() {
       _isLoading = false;
+      if (!success) _failedAttempts++;
     });
 
     if (success && mounted) {
+      _failedAttempts = 0;
       context.go(AppRouter.vault);
     } else if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -52,8 +70,37 @@ class _LockPageState extends ConsumerState<LockPage> {
     }
   }
 
+  Future<void> _unlockWithBiometric() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    final success = await ref.read(authProvider.notifier).loginWithBiometric();
+
+    setState(() {
+      _isLoading = false;
+      if (!success) _failedAttempts++;
+    });
+
+    if (success && mounted) {
+      _failedAttempts = 0;
+      context.go(AppRouter.vault);
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Biometric authentication failed'),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final showBiometric =
+        authState.hasBiometricCredential && _failedAttempts < 3;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
@@ -109,10 +156,38 @@ class _LockPageState extends ConsumerState<LockPage> {
                   },
                 ),
                 const SizedBox(height: 32),
-                VaultButton(
-                  text: 'Unlock',
-                  onPressed: _unlock,
-                  isLoading: _isLoading,
+                Row(
+                  children: [
+                    Expanded(
+                      child: VaultButton(
+                        text: 'Unlock',
+                        onPressed: _unlock,
+                        isLoading: _isLoading,
+                      ),
+                    ),
+                    if (showBiometric) ...[
+                      const SizedBox(width: 16),
+                      Container(
+                        height: 56,
+                        width: 56,
+                        decoration: BoxDecoration(
+                          color: AppTheme.surfaceColor,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: AppTheme.primaryColor.withValues(alpha: 0.5),
+                          ),
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.fingerprint,
+                            color: AppTheme.primaryColor,
+                            size: 28,
+                          ),
+                          onPressed: _unlockWithBiometric,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ],
             ),

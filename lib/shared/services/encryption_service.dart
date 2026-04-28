@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:pointycastle/export.dart';
 
@@ -20,16 +20,25 @@ class EncryptionService {
     );
   }
 
-  Uint8List _deriveKey(String password, Uint8List salt) {
+  static Uint8List _deriveKeySync(Map<String, dynamic> params) {
+    final password = params['password'] as String;
+    final salt = params['salt'] as Uint8List;
+    final iterations = params['iterations'] as int;
+    final keyLength = params['keyLength'] as int;
+
     final pbkdf2 = PBKDF2KeyDerivator(HMac(SHA256Digest(), 64));
-    pbkdf2.init(
-      Pbkdf2Parameters(
-        salt,
-        AppConstants.pbkdf2Iterations,
-        AppConstants.keyLength,
-      ),
-    );
+    pbkdf2.init(Pbkdf2Parameters(salt, iterations, keyLength));
     return pbkdf2.process(Uint8List.fromList(utf8.encode(password)));
+  }
+
+  Future<Uint8List> deriveKey(String password) async {
+    final salt = await _getSalt();
+    return await compute(_deriveKeySync, {
+      'password': password,
+      'salt': salt,
+      'iterations': AppConstants.pbkdf2Iterations,
+      'keyLength': AppConstants.keyLength,
+    });
   }
 
   Future<void> generateSalt() async {
@@ -51,8 +60,7 @@ class EncryptionService {
   }
 
   Future<String> hashMasterPassword(String password) async {
-    final salt = await _getSalt();
-    final key = _deriveKey(password, salt);
+    final key = await deriveKey(password);
     final digest = SHA256Digest();
     final hash = digest.process(key);
     return base64Encode(hash);
@@ -81,14 +89,14 @@ class EncryptionService {
     return _generateRandomBytes(AppConstants.ivLength);
   }
 
-  Future<Uint8List> encrypt(String plaintext, String password) async {
-    final salt = await _getSalt();
-    final key = _deriveKey(password, salt);
-    final iv = _generateIV();
+  static Uint8List _encryptSync(Map<String, dynamic> params) {
+    final plaintext = params['plaintext'] as String;
+    final key = params['key'] as Uint8List;
+    final iv = params['iv'] as Uint8List;
 
     final cipher = GCMBlockCipher(AESEngine());
-    final params = AEADParameters(KeyParameter(key), 128, iv, Uint8List(0));
-    cipher.init(true, params);
+    final aeadParams = AEADParameters(KeyParameter(key), 128, iv, Uint8List(0));
+    cipher.init(true, aeadParams);
 
     final plaintextBytes = Uint8List.fromList(utf8.encode(plaintext));
     final ciphertext = cipher.process(plaintextBytes);
@@ -100,19 +108,47 @@ class EncryptionService {
     return result;
   }
 
-  Future<String> decrypt(Uint8List encryptedData, String password) async {
-    final salt = await _getSalt();
-    final key = _deriveKey(password, salt);
+  Future<Uint8List> encryptWithKey(String plaintext, Uint8List key) async {
+    final iv = _generateIV();
+    return await compute(_encryptSync, {
+      'plaintext': plaintext,
+      'key': key,
+      'iv': iv,
+    });
+  }
 
-    final iv = encryptedData.sublist(0, AppConstants.ivLength);
-    final ciphertext = encryptedData.sublist(AppConstants.ivLength);
+  static String _decryptSync(Map<String, dynamic> params) {
+    final encryptedData = params['encryptedData'] as Uint8List;
+    final key = params['key'] as Uint8List;
+    final ivLength = params['ivLength'] as int;
+
+    final iv = encryptedData.sublist(0, ivLength);
+    final ciphertext = encryptedData.sublist(ivLength);
 
     final cipher = GCMBlockCipher(AESEngine());
-    final params = AEADParameters(KeyParameter(key), 128, iv, Uint8List(0));
-    cipher.init(false, params);
+    final aeadParams = AEADParameters(KeyParameter(key), 128, iv, Uint8List(0));
+    cipher.init(false, aeadParams);
 
     final plaintext = cipher.process(ciphertext);
     return utf8.decode(plaintext);
+  }
+
+  Future<String> decryptWithKey(Uint8List encryptedData, Uint8List key) async {
+    return await compute(_decryptSync, {
+      'encryptedData': encryptedData,
+      'key': key,
+      'ivLength': AppConstants.ivLength,
+    });
+  }
+
+  Future<Uint8List> encrypt(String plaintext, String password) async {
+    final key = await deriveKey(password);
+    return await encryptWithKey(plaintext, key);
+  }
+
+  Future<String> decrypt(Uint8List encryptedData, String password) async {
+    final key = await deriveKey(password);
+    return await decryptWithKey(encryptedData, key);
   }
 
   Future<bool> hasMasterPassword() async {
@@ -122,5 +158,29 @@ class EncryptionService {
 
   Future<void> clearAllData() async {
     await _secureStorage.deleteAll();
+  }
+
+  Future<String> encryptMap(
+    Map<String, dynamic> data,
+    String password, {
+    Uint8List? key,
+  }) async {
+    final jsonString = jsonEncode(data);
+    final encryptedBytes = key != null
+        ? await encryptWithKey(jsonString, key)
+        : await encrypt(jsonString, password);
+    return base64Encode(encryptedBytes);
+  }
+
+  Future<Map<String, dynamic>> decryptMap(
+    String encryptedData,
+    String password, {
+    Uint8List? key,
+  }) async {
+    final encryptedBytes = base64Decode(encryptedData);
+    final decryptedString = key != null
+        ? await decryptWithKey(encryptedBytes, key)
+        : await decrypt(encryptedBytes, password);
+    return jsonDecode(decryptedString) as Map<String, dynamic>;
   }
 }

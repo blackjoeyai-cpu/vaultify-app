@@ -1,9 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter/foundation.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../data/datasources/auth_local_datasource.dart';
 import '../../../../shared/services/encryption_service.dart';
+import '../../../../shared/services/biometric_service.dart';
+import '../../../../shared/services/session_provider.dart';
+import '../../../../core/di/vault_datasource_provider.dart';
+import '../../../settings/application/providers/settings_provider.dart';
+import 'auth_timer_provider.dart';
 
 final secureStorageProvider = Provider<FlutterSecureStorage>((ref) {
   return const FlutterSecureStorage(
@@ -27,18 +33,24 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
   return AuthRepositoryImpl(localDatasource, encryptionService);
 });
 
+final biometricServiceProvider = Provider<BiometricService>((ref) {
+  return BiometricService();
+});
+
 enum AuthStatus { initial, authenticated, unauthenticated, loading }
 
 class AuthState {
   final AuthStatus status;
   final bool hasMasterPassword;
   final bool isOnboardingComplete;
+  final bool hasBiometricCredential;
   final String? error;
 
   const AuthState({
     this.status = AuthStatus.initial,
     this.hasMasterPassword = false,
     this.isOnboardingComplete = false,
+    this.hasBiometricCredential = false,
     this.error,
   });
 
@@ -46,12 +58,15 @@ class AuthState {
     AuthStatus? status,
     bool? hasMasterPassword,
     bool? isOnboardingComplete,
+    bool? hasBiometricCredential,
     String? error,
   }) {
     return AuthState(
       status: status ?? this.status,
       hasMasterPassword: hasMasterPassword ?? this.hasMasterPassword,
       isOnboardingComplete: isOnboardingComplete ?? this.isOnboardingComplete,
+      hasBiometricCredential:
+          hasBiometricCredential ?? this.hasBiometricCredential,
       error: error,
     );
   }
@@ -59,12 +74,43 @@ class AuthState {
 
 class AuthNotifier extends StateNotifier<AuthState> {
   final AuthRepository _authRepository;
+  final Ref _ref;
 
-  AuthNotifier(this._authRepository) : super(const AuthState());
+  AuthNotifier(this._authRepository, this._ref) : super(const AuthState());
 
   Future<void> checkAuthStatus() async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
+      final hasMasterPassword = await _authRepository.hasMasterPassword();
+      final isOnboardingComplete = await _authRepository.isOnboardingComplete();
+      final isBiometricEnabled = await _authRepository.isBiometricEnabled();
+
+      await _ref.read(settingsProvider.notifier).loadSettings();
+
+      if (!hasMasterPassword) {
+        state = state.copyWith(
+          hasMasterPassword: false,
+          isOnboardingComplete: isOnboardingComplete,
+          status: AuthStatus.initial,
+        );
+        return;
+      }
+
+      // Always start as unauthenticated on app startup for security.
+      // The session in storage is used for background auto-lock persistence,
+      // but fresh app starts should always require re-authentication.
+      state = state.copyWith(
+        hasMasterPassword: true,
+        isOnboardingComplete: isOnboardingComplete,
+        hasBiometricCredential: isBiometricEnabled,
+        status: AuthStatus.unauthenticated,
+      );
+
+      // If biometric is NOT enabled, clear any existing session to ensure security
+      if (!isBiometricEnabled) {
+        await _authRepository.clearSession();
+      }
+    } catch (e) {
       final hasMasterPassword = await _authRepository.hasMasterPassword();
       final isOnboardingComplete = await _authRepository.isOnboardingComplete();
       state = state.copyWith(
@@ -73,9 +119,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         status: hasMasterPassword
             ? AuthStatus.unauthenticated
             : AuthStatus.initial,
+        error: e.toString(),
       );
-    } catch (e) {
-      state = state.copyWith(status: AuthStatus.initial, error: e.toString());
     }
   }
 
@@ -83,6 +128,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = state.copyWith(status: AuthStatus.loading);
     try {
       await _authRepository.createMasterPassword(password);
+      final encryptionService = _ref.read(encryptionServiceProvider);
+      final derivedKey = await encryptionService.deriveKey(password);
+      _ref.read(sessionProvider.notifier).unlock(password, derivedKey: derivedKey);
+      setMasterPasswordCallback(
+        () => _ref.read(sessionProvider).masterPassword,
+        derivedKeyCallback: () => _ref.read(sessionProvider).derivedKey,
+      );
       state = state.copyWith(
         hasMasterPassword: true,
         status: AuthStatus.authenticated,
@@ -97,11 +149,28 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<bool> login(String password) async {
+  Future<bool> login(String password, {bool saveSession = true}) async {
     state = state.copyWith(status: AuthStatus.loading);
     try {
       final isValid = await _authRepository.verifyMasterPassword(password);
       if (isValid) {
+        final encryptionService = _ref.read(encryptionServiceProvider);
+        final derivedKey = await encryptionService.deriveKey(password);
+        _ref.read(sessionProvider.notifier).unlock(password, derivedKey: derivedKey);
+        setMasterPasswordCallback(
+          () => _ref.read(sessionProvider).masterPassword,
+          derivedKeyCallback: () => _ref.read(sessionProvider).derivedKey,
+        );
+        if (saveSession) {
+          final settings = _ref.read(settingsProvider);
+          final expiry = DateTime.now().add(
+            Duration(minutes: settings.autoLockDuration),
+          );
+          await _authRepository.saveSession(expiry, masterPassword: password);
+          if (settings.autoLockEnabled) {
+            _ref.read(authTimerProvider.notifier).startTimer(expiry);
+          }
+        }
         state = state.copyWith(status: AuthStatus.authenticated);
         return true;
       } else {
@@ -120,17 +189,132 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  Future<bool> verifyPassword(String password) async {
+    try {
+      return await _authRepository.verifyMasterPassword(password);
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<bool> loginWithBiometric() async {
+    state = state.copyWith(status: AuthStatus.loading);
+    try {
+      final isBiometricEnabled = await _authRepository.isBiometricEnabled();
+      if (!isBiometricEnabled) {
+        state = state.copyWith(
+          status: AuthStatus.unauthenticated,
+          error: 'Biometric not enabled',
+        );
+        return false;
+      }
+
+      final biometricService = _ref.read(biometricServiceProvider);
+      final authenticated = await biometricService.authenticate();
+
+      if (!authenticated) {
+        state = state.copyWith(
+          status: AuthStatus.unauthenticated,
+          error: 'Biometric authentication failed',
+        );
+        return false;
+      }
+
+      final session = await _authRepository.getSession();
+      if (session != null && session.masterPassword != null) {
+        final encryptionService = _ref.read(encryptionServiceProvider);
+        final derivedKey = await encryptionService.deriveKey(session.masterPassword!);
+        _ref.read(sessionProvider.notifier).unlock(
+          session.masterPassword!,
+          derivedKey: derivedKey,
+        );
+        setMasterPasswordCallback(
+          () => _ref.read(sessionProvider).masterPassword,
+          derivedKeyCallback: () => _ref.read(sessionProvider).derivedKey,
+        );
+      }
+
+      final settings = _ref.read(settingsProvider);
+      final expiry = DateTime.now().add(
+        Duration(minutes: settings.autoLockDuration),
+      );
+      await _authRepository.saveSession(expiry);
+      if (settings.autoLockEnabled) {
+        _ref.read(authTimerProvider.notifier).startTimer(expiry);
+      }
+
+      state = state.copyWith(status: AuthStatus.authenticated);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.unauthenticated,
+        error: e.toString(),
+      );
+      return false;
+    }
+  }
+
+  Future<void> enableBiometric() async {
+    try {
+      await _authRepository.enableBiometric();
+
+      // Save current session with master password if available
+      // This ensures biometric unlock can retrieve the master password later
+      final sessionProvider_ = _ref.read(sessionProvider);
+      final masterPassword = sessionProvider_.masterPassword;
+      if (masterPassword != null && masterPassword.isNotEmpty) {
+        final settings = _ref.read(settingsProvider);
+        final expiry = DateTime.now().add(
+          Duration(minutes: settings.autoLockDuration),
+        );
+        await _authRepository.saveSession(
+          expiry,
+          masterPassword: masterPassword,
+        );
+      }
+
+      state = state.copyWith(hasBiometricCredential: true);
+    } catch (e) {
+      debugPrint('Error enabling biometric: $e');
+      state = state.copyWith(error: 'Failed to enable biometric: $e');
+    }
+  }
+
+  Future<void> disableBiometric() async {
+    await _authRepository.disableBiometric();
+    state = state.copyWith(hasBiometricCredential: false);
+  }
+
+  Future<void> refreshSession() async {
+    final settings = _ref.read(settingsProvider);
+    if (settings.autoLockEnabled) {
+      final expiry = DateTime.now().add(
+        Duration(minutes: settings.autoLockDuration),
+      );
+      await _authRepository.saveSession(expiry);
+    }
+  }
+
   Future<void> completeOnboarding() async {
     await _authRepository.completeOnboarding();
     state = state.copyWith(isOnboardingComplete: true);
   }
 
-  void logout() {
+  void lockApp() {
+    _ref.read(sessionProvider.notifier).lock();
+    _ref.read(authTimerProvider.notifier).resetTimer();
+    state = state.copyWith(status: AuthStatus.unauthenticated);
+  }
+
+  Future<void> logout() async {
+    await _authRepository.clearSession();
+    _ref.read(sessionProvider.notifier).lock();
+    _ref.read(authTimerProvider.notifier).resetTimer();
     state = state.copyWith(status: AuthStatus.unauthenticated);
   }
 }
 
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   final repository = ref.watch(authRepositoryProvider);
-  return AuthNotifier(repository);
+  return AuthNotifier(repository, ref);
 });

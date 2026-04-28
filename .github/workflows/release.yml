@@ -2,109 +2,128 @@ name: Release
 
 on:
   push:
-    tags:
-      - 'v*'
     branches:
       - main
 
 permissions:
   contents: write
+  pull-requests: read
 
 jobs:
-  build:
-    name: Build
+  release:
+    name: Build and Release
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-      
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.41.6'
-          cache: true
-      
-      - run: flutter pub get
-
-  build-debug-apk:
-    name: Build Debug APK
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-      
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.41.6'
-          cache: true
-      
-      - run: flutter pub get
-      
-      - run: flutter build apk --debug
-        env:
-          FLUTTER_BUILD_APPBundle: false
-      
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vaultify-debug.apk
-          path: build/app/outputs/flutter-apk/app-debug.apk
-          overwrite: true
-
-  build-release-apk:
-    name: Build Release APK
-    runs-on: ubuntu-latest
-    needs: build
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 'lts/*'
-      
-      - uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.41.6'
-          cache: true
-      
-      - run: flutter pub get
-      
-      - run: flutter build apk --release
-      
-      - uses: actions/upload-artifact@v4
-        with:
-          name: vaultify-release.apk
-          path: build/app/outputs/flutter-apk/app-release.apk
-          overwrite: true
-
-  create-release:
-    name: Create Release
-    runs-on: ubuntu-latest
-    needs: [build-debug-apk, build-release-apk]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && !contains(github.event.head_commit.message, '[skip ci]')
     steps:
       - uses: actions/checkout@v4
         with:
+          token: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
           fetch-depth: 0
 
-      - uses: actions/setup-node@v4
+      - name: Setup Java
+        uses: actions/setup-java@v4
         with:
-          node-version: 'lts/*'
-      
-      - uses: actions/download-artifact@v4
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
         with:
-          path: artifacts
-      
-      - uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/**
-          tag_name: ${{ github.ref_name }}
-          name: ${{ github.ref_name }}
-          body: ${{ github.event.head_commit.message }}
+          channel: 'stable'
+          cache: true
+
+      - name: Get bump type
+        id: bump_type
+        run: |
+          # Try to find the PR associated with this commit to check labels
+          PR_NUMBER=$(gh pr list --search "${{ github.sha }} is:merged" --json number --jq '.[0].number // empty')
+          if [ -n "$PR_NUMBER" ]; then
+            LABELS=$(gh pr view $PR_NUMBER --json labels --jq '.labels[].name')
+            if echo "$LABELS" | grep -iq "major"; then
+              echo "type=major" >> $GITHUB_OUTPUT
+            elif echo "$LABELS" | grep -iq "minor"; then
+              echo "type=minor" >> $GITHUB_OUTPUT
+            else
+              echo "type=patch" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "type=patch" >> $GITHUB_OUTPUT
+          fi
         env:
-          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Bump version and update changelog
+        run: |
+          BUMP_TYPE=${{ steps.bump_type.outputs.type }}
+          COMMIT_MSG="${{ github.event.head_commit.message }}"
+          dart tool/release_helper.dart $BUMP_TYPE "$COMMIT_MSG"
+
+      - name: Get New Version
+        id: version
+        run: |
+          FULL_VERSION=$(grep 'version: ' pubspec.yaml | sed 's/version: //')
+          VERSION_NAME=$(echo $FULL_VERSION | cut -d'+' -f1)
+          echo "full=$FULL_VERSION" >> $GITHUB_OUTPUT
+          echo "name=$VERSION_NAME" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Run tests
+        run: flutter test --reporter compact
+        env:
+          TEST_CORRECT_PASSWORD: ${{ secrets.TEST_CORRECT_PASSWORD }}
+          TEST_WRONG_PASSWORD: ${{ secrets.TEST_WRONG_PASSWORD }}
+          TEST_DIFFERENT_PASSWORD: ${{ secrets.TEST_DIFFERENT_PASSWORD }}
+          TEST_SECRET_DATA: ${{ secrets.TEST_SECRET_DATA }}
+
+      - name: Build Debug APK
+        run: |
+          flutter build apk --debug
+          mv build/app/outputs/flutter-apk/app-debug.apk build/app/outputs/flutter-apk/vaultify-${{ steps.version.outputs.full }}-debug.apk
+
+      - name: Build Release APK
+        run: |
+          flutter build apk --release
+          mv build/app/outputs/flutter-apk/app-release.apk build/app/outputs/flutter-apk/vaultify-${{ steps.version.outputs.full }}-release.apk
+
+      - name: Commit and push changes
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add pubspec.yaml CHANGELOG.md
+          git commit -m "chore: bump version to ${{ steps.version.outputs.full }} [skip ci]"
+          git push origin refs/heads/main
+
+      - name: Create and push tag
+        run: |
+          TAG="v${{ steps.version.outputs.name }}"
+          git tag $TAG
+          git push origin $TAG
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+
+      - name: Get changelog entry
+        id: changelog_reader
+        run: |
+          VERSION_NAME="${{ steps.version.outputs.name }}"
+          # Extract entry for this version from CHANGELOG.md
+          # It looks for "## [1.0.1+2]" and takes until the next "## "
+          FULL_VERSION="${{ steps.version.outputs.full }}"
+          sed -n "/## \[$FULL_VERSION\]/,/## /p" CHANGELOG.md | sed '$d' > release_notes.md
+          # If file is empty, use commit message
+          if [ ! -s release_notes.md ]; then
+            echo "${{ github.event.head_commit.message }}" > release_notes.md
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            build/app/outputs/flutter-apk/vaultify-${{ steps.version.outputs.full }}-debug.apk
+            build/app/outputs/flutter-apk/vaultify-${{ steps.version.outputs.full }}-release.apk
+          tag_name: v${{ steps.version.outputs.name }}
+          name: v${{ steps.version.outputs.name }}
+          body_path: release_notes.md
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
